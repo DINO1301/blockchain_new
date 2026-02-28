@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Thêm một chút style cơ bản */
+body {
+  background-color: #f6f8fb; /* Màu nền cũ của bạn */
+  color: #0d141b;
+}
