@@ -22,6 +22,7 @@ import QualityControl from './pages/admin/QualityControl';
 import Inventory from './pages/admin/Inventory';
 import ProductManager from './pages/admin/ProductManager';
 import ProductList from './pages/admin/ProductList';
+import Chatbot from './components/Chatbot';
 
 // Component bảo vệ (Chỉ cho phép Admin truy cập)
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -197,6 +198,9 @@ function App() {
           } />
         </Routes>
       </main>
+
+      {/* Chatbot thông minh */}
+      <Chatbot />
     </div>
   );
 }
