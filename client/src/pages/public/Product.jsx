@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { db } from '../../services/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { ShoppingCart, Clock, Pill, ShieldAlert, ChevronRight, FileText } from 'lucide-react';
+import { ShoppingCart, Clock, Pill, ShieldAlert, ChevronRight, FileText, X } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
 const sections = [
@@ -36,6 +36,7 @@ const Product = () => {
   const [activeKey, setActiveKey] = useState(sections[0].key);
   const [qty, setQty] = useState(1);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [showRelatedDocs, setShowRelatedDocs] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -126,7 +127,49 @@ const Product = () => {
                 <div className="w-48 md:w-56 text-gray-500">Mô tả ngắn</div>
                 <div className="flex-1 text-gray-800">{product.description || 'Đang cập nhật'}</div>
               </div>
+              {Array.isArray(product.relatedDocs) && product.relatedDocs.length > 0 && (
+                <div className="flex gap-6 items-center">
+                  <div className="w-48 md:w-56 text-gray-500">Giấy tờ liên quan</div>
+                  <div className="flex-1">
+                    <button 
+                      onClick={() => setShowRelatedDocs(!showRelatedDocs)}
+                      className="text-indigo-600 font-bold hover:underline flex items-center gap-1"
+                    >
+                      <FileText size={16} /> Xem các giấy tờ pháp lý ({product.relatedDocs.length})
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Hiển thị ảnh giấy tờ liên quan nếu được chọn */}
+            {showRelatedDocs && Array.isArray(product.relatedDocs) && (
+              <div className="mt-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-sm font-bold text-indigo-800 uppercase tracking-wider">Danh sách giấy tờ pháp lý</h3>
+                  <button onClick={() => setShowRelatedDocs(false)} className="text-indigo-400 hover:text-indigo-600">
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {product.relatedDocs.map((url, idx) => (
+                    <a 
+                      key={idx} 
+                      href={url} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="aspect-[3/4] rounded-lg border bg-white overflow-hidden hover:ring-2 ring-indigo-500 transition shadow-sm group relative"
+                    >
+                      <img src={url} alt={`doc-${idx}`} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span className="bg-white/90 px-2 py-1 rounded text-[10px] font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">Phóng to</span>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <div className="flex items-center bg-gray-50 border rounded-lg">
                 <button

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Web3Context } from '../../context/Web3Context';
-import { Package, Truck, Loader2, QrCode, X, Printer, CheckCircle2, FileText, Upload, Image as LucideImage } from 'lucide-react';
+import { Package, Truck, Loader2, QrCode, X, Printer, CheckCircle2, FileText, Upload, Image as LucideImage, ExternalLink } from 'lucide-react';
 import { db, storage } from '../../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
@@ -16,6 +16,7 @@ const Inventory = () => {
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [deliveryBatch, setDeliveryBatch] = useState(null); // Modal kết thúc
   const [docsBatch, setDocsBatch] = useState(null); // Modal cập nhật giấy tờ
+  const [existingDocUrls, setExistingDocUrls] = useState([]); // Giấy tờ đã có trên BC
   const [docFiles, setDocsFiles] = useState([]); // File ảnh giấy tờ
   const [docLinks, setDocLinks] = useState([]); // Link ảnh nhập tay
   const [linkInput, setLinkInput] = useState(''); // Ô nhập link
@@ -145,6 +146,18 @@ const Inventory = () => {
     }
   };
 
+  const openDocsModal = async (batch) => {
+    setDocsBatch(batch);
+    setExistingDocUrls([]);
+    if (!contract) return;
+    try {
+      const urls = await contract.getBatchDocuments(BigInt(batch.id));
+      setExistingDocUrls(urls || []);
+    } catch (e) {
+      console.log("Không lấy được giấy tờ cũ:", e);
+    }
+  };
+
   const handleUpdateDocs = async (e) => {
     e.preventDefault();
     if (!contract || !docsBatch || (docFiles.length === 0 && docLinks.length === 0)) {
@@ -162,6 +175,15 @@ const Inventory = () => {
       // Lấy thông tin thực tế từ Blockchain để đối chiếu
       const batchInfo = await contract.getBatchDetails(batchId);
       const contractAdmin = await contract.admin();
+      
+      // Lấy danh sách giấy tờ hiện có để tránh bị ghi đè mất cái cũ
+      let existingDocs = [];
+      try {
+        existingDocs = await contract.getBatchDocuments(batchId);
+        console.log("Giấy tờ hiện có trên Blockchain:", existingDocs);
+      } catch (e) {
+        console.log("Lô này chưa có giấy tờ cũ.");
+      }
       
       const isOwner = batchInfo.currentOwner.toLowerCase() === signerAddr.toLowerCase();
       const isCreator = batchInfo.creator.toLowerCase() === signerAddr.toLowerCase();
@@ -181,26 +203,48 @@ const Inventory = () => {
       if (docFiles.length > 0) {
         for (let i = 0; i < docFiles.length; i++) {
           const file = docFiles[i];
-          const storageRef = ref(storage, `batch_docs/${docsBatch.id}/${Date.now()}_${file.name}`);
-          const snapshot = await uploadBytes(storageRef, file);
-          const url = await getDownloadURL(snapshot.ref);
-          uploadedUrls.push(url);
+          // Kiểm tra kích thước file (Giới hạn 5MB để tránh quá tải)
+          if (file.size > 5 * 1024 * 1024) {
+             throw new Error(`File ${file.name} quá lớn (>5MB). Vui lòng chọn file nhỏ hơn.`);
+          }
+          
+          console.log(`Đang tải file ${i + 1}/${docFiles.length}: ${file.name}...`);
+          try {
+            // Tên file chuẩn hóa để tránh lỗi ký tự đặc biệt trong URL
+            const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+            const storageRef = ref(storage, `batch_docs/${docsBatch.id}/${fileName}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(snapshot.ref);
+            uploadedUrls.push(url);
+          } catch (storageErr) {
+            console.error("Lỗi tại Firebase Storage:", storageErr);
+            throw new Error(`Không thể tải file ${file.name} lên máy chủ.`);
+          }
         }
       }
 
-      const allUrls = [...uploadedUrls, ...docLinks];
+      // Gộp và chuẩn hóa (Trim spaces) các link nhập tay
+      const cleanDocLinks = docLinks.map(link => link.trim()).filter(link => link.length > 0);
+      
+      // GỘP CẢ CÁI CŨ + FILE MỚI + LINK MỚI
+      const allUrls = [...existingDocs, ...uploadedUrls, ...cleanDocLinks];
+
+      if (allUrls.length === 0) {
+        throw new Error("Không có dữ liệu hợp lệ để cập nhật.");
+      }
 
       // --- BƯỚC 3: GỬI GIAO DỊCH BLOCKCHAIN ---
       console.log("--- GỬI BLOCKCHAIN (PHƯƠNG ÁN TỐI GIẢN) ---");
+      console.log("Dữ liệu gửi đi:", { finalBatchId: docsBatch.id, allUrls });
       
       const finalBatchId = BigInt(docsBatch.id);
       
-      // Gửi giao dịch và ép buộc Gas cao để tránh lỗi ước tính
+      // Gửi giao dịch và ép buộc Gas cao (1M) để hỗ trợ các bộ hồ sơ/URL dài/phức tạp
       const tx = await contract.updateBatchDocuments(finalBatchId, allUrls, {
-        gasLimit: 500000 
+        gasLimit: 1000000 
       });
       
-      console.log("Đang chờ xác nhận...");
+      console.log("Đang chờ xác nhận... Hash:", tx.hash);
       const receipt = await tx.wait();
 
       if (receipt.status === 1) {
@@ -213,11 +257,6 @@ const Inventory = () => {
       } else {
         throw new Error("Giao dịch bị thất bại trên Blockchain (Status 0)");
       }
-      setDocsBatch(null);
-      setDocsFiles([]);
-      setDocLinks([]);
-      setLinkInput('');
-      fetchMyInventory();
     } catch (error) {
       console.error("LỖI CHI TIẾT:", error);
       // Hiển thị thông báo lỗi thân thiện
@@ -252,7 +291,7 @@ const Inventory = () => {
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {myBatches.map((batch) => (
-            <div key={batch.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition">
+            <div key={batch.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition flex flex-col h-full">
               <div className="flex justify-between items-start mb-4">
                 <div className="bg-blue-50 text-primary font-bold px-3 py-1 rounded-md text-sm">
                   ID: #{batch.id}
@@ -268,21 +307,33 @@ const Inventory = () => {
                 )}
               </div>
               
-              <h3 className="text-lg font-bold text-gray-800 mb-1">{batch.name}</h3>
-              <p className="text-sm text-gray-500 mb-4">{batch.manufacturer}</p>
+              <div className="flex-grow flex flex-col">
+                <div className="min-h-[4.5rem]">
+                  <h3 className="text-lg font-bold text-gray-800 mb-2 leading-tight">
+                    {batch.name}
+                  </h3>
+                </div>
+                
+                <div className="mt-auto pt-3 border-t border-gray-50 mb-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nơi sản xuất</span>
+                    <p className="text-base text-primary font-bold">{batch.manufacturer}</p>
+                  </div>
+                </div>
+              </div>
               
               <div className="flex flex-col gap-2 mt-4">
                 <div className="flex gap-2">
                   <button 
                     onClick={() => setQrBatch(batch)}
-                    className="flex-1 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 flex items-center justify-center gap-2 transition"
+                    className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 flex items-center justify-center gap-2 transition text-sm"
                   >
                     <QrCode size={18} /> Mã QR
                   </button>
 
                   <button 
                     onClick={() => setSelectedBatch(batch)}
-                    className="flex-1 py-2 bg-white border border-primary text-primary font-medium rounded-lg hover:bg-blue-50 flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 py-2.5 bg-white border border-primary text-primary font-medium rounded-lg hover:bg-blue-50 flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                     disabled={batch.status === 3}
                   >
                     <Truck size={18} /> Chuyển đi
@@ -292,9 +343,9 @@ const Inventory = () => {
                 {batch.status !== 3 && (
                   <>
                     <button 
-                      onClick={() => setDocsBatch(batch)}
+                      onClick={() => openDocsModal(batch)}
                       disabled={!batch.isOwnerOnChain}
-                      className={`w-full py-2 font-medium rounded-lg flex items-center justify-center gap-2 transition border ${
+                      className={`w-full py-2.5 font-medium rounded-lg flex items-center justify-center gap-2 transition border text-sm ${
                         batch.isOwnerOnChain 
                         ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100' 
                         : 'bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed'
@@ -305,11 +356,17 @@ const Inventory = () => {
                     </button>
                     <button 
                       onClick={() => setDeliveryBatch(batch)}
-                      className="w-full py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 transition"
+                      className="w-full py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 transition text-sm"
                     >
                       <CheckCircle2 size={18} /> Kết thúc lộ trình
                     </button>
                   </>
+                )}
+                
+                {batch.status === 3 && (
+                  <div className="h-[92px] flex items-center justify-center border border-dashed border-gray-200 rounded-lg bg-gray-50 text-gray-400 text-xs text-center px-4">
+                    Lô hàng này đã hoàn tất hành trình và không thể chỉnh sửa thêm.
+                  </div>
                 )}
               </div>
             </div>
@@ -415,6 +472,27 @@ const Inventory = () => {
             </div>
             
             <form onSubmit={handleUpdateDocs} className="space-y-4">
+              {/* Danh sách giấy tờ ĐÃ CÓ trên Blockchain */}
+              {existingDocUrls.length > 0 && (
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                  <p className="text-[10px] font-bold text-blue-400 uppercase mb-2 tracking-wider">Giấy tờ hiện có trên Blockchain</p>
+                  <div className="space-y-1">
+                    {existingDocUrls.map((url, i) => (
+                      <div key={`existing-${i}`} className="text-xs text-blue-600 flex items-center justify-between gap-2 p-1 bg-white/50 rounded">
+                        <div className="flex items-center gap-2 truncate">
+                          <CheckCircle2 size={12} className="text-blue-400" />
+                          <span className="truncate italic">Tài liệu #{i + 1} (Đã lưu)</span>
+                        </div>
+                        <a href={url} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-600">
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[9px] text-blue-400 mt-2">* Các tài liệu này sẽ được giữ lại khi bạn cập nhật thêm cái mới.</p>
+                </div>
+              )}
+
               {/* Phần 1: Tải file lên */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Tải ảnh từ máy tính</label>

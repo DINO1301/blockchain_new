@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../services/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { Package, Calendar, ChevronDown, ChevronUp, ExternalLink, Clock, CheckCircle, Truck } from 'lucide-react';
+import { Package, Calendar, ChevronDown, ChevronUp, ExternalLink, Clock, CheckCircle, Truck, CreditCard, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const OrderHistory = () => {
@@ -49,8 +49,18 @@ const OrderHistory = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-700';
+      case 'paid': return 'bg-blue-100 text-blue-700';
       case 'shipping': return 'bg-blue-100 text-blue-700';
       default: return 'bg-yellow-100 text-yellow-700';
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'completed': return 'Hoàn thành';
+      case 'paid': return 'Đã thanh toán (Online)';
+      case 'shipping': return 'Đang giao';
+      default: return 'Chờ xử lý';
     }
   };
 
@@ -80,13 +90,29 @@ const OrderHistory = () => {
                 <div className="flex items-center gap-4">
                   <div className={`p-2 rounded-full ${getStatusColor(order.status)}`}>
                     {order.status === 'completed' ? <CheckCircle size={20}/> : 
-                     order.status === 'shipping' ? <Truck size={20}/> : <Clock size={20}/>}
+                     order.status === 'shipping' || order.status === 'paid' ? <Truck size={20}/> : <Clock size={20}/>}
                   </div>
                   <div>
-                    <p className="font-bold text-gray-800">Đơn #{order.id.slice(0, 8).toUpperCase()}</p>
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <Calendar size={12}/> {formatDate(order.createdAt)}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-gray-800">Đơn #{order.id.slice(0, 8).toUpperCase()}</p>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${getStatusColor(order.status)}`}>
+                        {getStatusLabel(order.status)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1">
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <Calendar size={12}/> {formatDate(order.createdAt)}
+                      </p>
+                      <span className="text-xs text-gray-400 border-l pl-3 flex items-center gap-1">
+                        {order.paymentMethod === 'online' ? (
+                          <><CreditCard size={12}/> Thẻ Online</>
+                        ) : order.paymentMethod === 'direct' ? (
+                          <><Wallet size={12}/> Tiền mặt</>
+                        ) : (
+                          <><Wallet size={12}/> Chưa rõ PT</>
+                        )}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

@@ -3,7 +3,7 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../services/firebase';
 import { runTransaction, doc, collection, serverTimestamp } from 'firebase/firestore';
-import { Trash2, Minus, Plus, ArrowRight, Loader2, ShoppingBag } from 'lucide-react';
+import { Trash2, Minus, Plus, ArrowRight, Loader2, ShoppingBag, CreditCard, Wallet } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Cart = () => {
@@ -12,49 +12,46 @@ const Cart = () => {
   const navigate = useNavigate();
   
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('direct'); // 'direct' or 'online'
 
   // LOGIC THANH TOÁN (FIFO)
   const handleCheckout = async () => {
     if (cartItems.length === 0) return;
-    if (!window.confirm(`Xác nhận thanh toán đơn hàng trị giá ${totalAmount.toLocaleString()}đ?`)) return;
+    
+    const methodText = paymentMethod === 'direct' ? "Trực tiếp tại quầy" : "Thanh toán Online";
+    if (!window.confirm(`Xác nhận thanh toán đơn hàng trị giá ${totalAmount.toLocaleString()}đ?\nPhương thức: ${methodText}`)) return;
 
     setIsProcessing(true);
 
     try {
       await runTransaction(db, async (transaction) => {
         const orderDetails = []; 
+        const productSnapshots = [];
 
+        // BƯỚC 1: ĐỌC TẤT CẢ DỮ LIỆU (READS FIRST)
         for (const item of cartItems) {
           const productRef = doc(db, "products", item.id);
           const productDoc = await transaction.get(productRef);
-
+          
           if (!productDoc.exists()) {
             throw new Error(`Sản phẩm "${item.name}" không tồn tại!`);
           }
+          productSnapshots.push({ item, productDoc, productRef });
+        }
 
+        // BƯỚC 2: TÍNH TOÁN VÀ GHI DỮ LIỆU (WRITES AFTER ALL READS)
+        for (const { item, productDoc, productRef } of productSnapshots) {
           const productData = productDoc.data();
           let currentBatches = productData.batches || [];
-          
-          // Debug: Xem dữ liệu gốc trước khi trừ
-          console.log(`--- Xử lý sản phẩm: ${item.name} ---`);
-          console.log("Batches gốc:", currentBatches);
-          console.log("Khách mua:", item.quantity);
-
           let remainingQtyToBuy = item.quantity;
-          
-          // FIX: Dùng for loop thường thay vì .map để kiểm soát biến tốt hơn
           const newBatches = [];
           
           for (const batch of currentBatches) {
-            // Ép kiểu Number để tránh lỗi chuỗi "50" - 1
             const currentQty = Number(batch.qty); 
             
             if (remainingQtyToBuy > 0 && currentQty > 0) {
               const take = Math.min(currentQty, remainingQtyToBuy);
               
-              // Ghi log chi tiết
-              console.log(`Lấy ${take} từ Batch #${batch.id}`);
-
               orderDetails.push({
                 productId: item.id,
                 productName: item.name,
@@ -63,30 +60,21 @@ const Cart = () => {
               });
 
               remainingQtyToBuy -= take;
-              
-              // Đẩy lô đã trừ vào mảng mới
               newBatches.push({ ...batch, qty: currentQty - take });
             } else {
-              // Lô này không bị đụng vào (giữ nguyên)
               newBatches.push(batch);
             }
           }
 
-          // Kiểm tra xem đã lấy đủ hàng chưa
           if (remainingQtyToBuy > 0) {
              throw new Error(`Sản phẩm "${item.name}" không đủ hàng (Thiếu ${remainingQtyToBuy} hộp)!`);
           }
 
-          // FIX: Tính lại Total Stock từ các lô (Không tin tưởng phép trừ cũ)
           const newTotalStock = newBatches.reduce((sum, b) => sum + Number(b.qty), 0);
           
-          console.log("Batches mới:", newBatches);
-          console.log("Total Stock mới:", newTotalStock);
-
-          // Cập nhật lại kho sản phẩm
           transaction.update(productRef, {
             batches: newBatches,
-            totalStock: newTotalStock // Ghi đè số mới chuẩn xác
+            totalStock: newTotalStock 
           });
         }
 
@@ -98,7 +86,8 @@ const Cart = () => {
           items: cartItems, 
           batchDetails: orderDetails,
           totalAmount: totalAmount,
-          status: 'pending',
+          paymentMethod: paymentMethod,
+          status: paymentMethod === 'online' ? 'paid' : 'pending',
           createdAt: serverTimestamp()
         });
       });
@@ -190,6 +179,35 @@ const Cart = () => {
             <div className="flex justify-between text-gray-600">
               <span>Phí vận chuyển</span>
               <span>Miễn phí</span>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <h3 className="text-sm font-bold text-gray-700 mb-3">Phương thức thanh toán</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setPaymentMethod('direct')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                  paymentMethod === 'direct'
+                    ? 'border-primary bg-blue-50 text-primary'
+                    : 'border-gray-100 hover:border-gray-200 text-gray-500'
+                }`}
+              >
+                <Wallet size={24} className="mb-1" />
+                <span className="text-xs font-bold">Trực tiếp</span>
+              </button>
+
+              <button
+                onClick={() => setPaymentMethod('online')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                  paymentMethod === 'online'
+                    ? 'border-primary bg-blue-50 text-primary'
+                    : 'border-gray-100 hover:border-gray-200 text-gray-500'
+                }`}
+              >
+                <CreditCard size={24} className="mb-1" />
+                <span className="text-xs font-bold">Online</span>
+              </button>
             </div>
           </div>
 
