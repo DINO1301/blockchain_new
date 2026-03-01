@@ -1,4 +1,4 @@
-export const CONTRACT_ADDRESS = "0x6a10ECdFfd27819710f27B7B3286d733c5D787Ba";
+export const CONTRACT_ADDRESS = "0x6c99F168B5c5127935369731d82118ad0F8820F1";
 
 // ABI 
 export const CONTRACT_ABI = [
@@ -240,6 +240,19 @@ export const CONTRACT_ABI = [
 			}
 		],
 		"name": "deliverBatch",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_batchCode",
+				"type": "uint256"
+			}
+		],
+		"name": "deleteBatch",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"

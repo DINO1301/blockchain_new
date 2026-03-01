@@ -1,7 +1,6 @@
 import { createContext, useState, useEffect, useContext } from 'react';
 import { useAuth } from './AuthContext';
-import { db } from '../services/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { supabase } from '../services/supabase';
 import { useNavigate } from 'react-router-dom';
 
 export const CartContext = createContext();
@@ -19,11 +18,18 @@ export const CartProvider = ({ children }) => {
       if (user) {
         setLoadingCart(true);
         try {
-          const cartRef = doc(db, "carts", user.uid);
-          const docSnap = await getDoc(cartRef);
+          const { data, error } = await supabase
+            .from('carts')
+            .select('items')
+            .eq('user_id', user.id)
+            .maybeSingle();
           
-          if (docSnap.exists()) {
-            setCartItems(docSnap.data().items || []);
+          if (error && error.code !== 'PGRST116') { // Giữ phòng hờ nhưng maybeSingle sẽ trả null thay vì lỗi
+            throw error;
+          }
+
+          if (data && data.items) {
+            setCartItems(data.items || []);
           } else {
             setCartItems([]); // User mới chưa có giỏ
           }
@@ -45,8 +51,15 @@ export const CartProvider = ({ children }) => {
   const saveToCloud = async (newItems) => {
     if (!user) return;
     try {
-      const cartRef = doc(db, "carts", user.uid);
-      await setDoc(cartRef, { items: newItems }, { merge: true });
+      const { error } = await supabase
+        .from('carts')
+        .upsert({ 
+          user_id: user.id, 
+          items: newItems,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      
+      if (error) throw error;
     } catch (error) {
       console.error("Lỗi lưu giỏ hàng:", error);
     }

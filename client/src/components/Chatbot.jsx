@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { db } from '../services/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { supabase } from '../services/supabase';
 import { MessageCircle, X, Send, Bot, User, Loader2, Sparkles, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -18,12 +17,12 @@ const Chatbot = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "products"));
-        const productList = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setProducts(productList);
+        const { data, error } = await supabase
+          .from('products')
+          .select('*');
+        
+        if (error) throw error;
+        setProducts(data || []);
       } catch (error) {
         console.error("Lỗi lấy dữ liệu thuốc cho Chatbot:", error);
       }
@@ -239,7 +238,7 @@ const Chatbot = () => {
                         {msg.suggestions.map(prod => (
                           <Link to={`/product/${prod.id}`} key={prod.id} onClick={() => setIsOpen(false)} className="bg-white p-3 rounded-xl border border-gray-200 hover:border-primary hover:shadow-md transition-all flex items-center gap-3 group">
                             <div className="w-12 h-12 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
-                               <img src={prod.imageUrl} alt={prod.name} className="w-full h-full object-contain" />
+                               <img src={prod.image_url} alt={prod.name} className="w-full h-full object-contain" />
                             </div>
                             <div className="min-w-0 flex-1">
                                <p className="text-xs font-bold text-gray-800 truncate">{prod.name}</p>

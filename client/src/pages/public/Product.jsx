@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { db } from '../../services/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { supabase } from '../../services/supabase';
 import { ShoppingCart, Clock, Pill, ShieldAlert, ChevronRight, FileText, X } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
@@ -9,7 +8,7 @@ const sections = [
   { key: 'ingredients', label: 'Thành phần', icon: Pill },
   { key: 'uses', label: 'Công dụng', icon: FileText },
   { key: 'directions', label: 'Cách dùng', icon: FileText },
-  { key: 'sideEffects', label: 'Tác dụng phụ', icon: ShieldAlert },
+  { key: 'side_effects', label: 'Tác dụng phụ', icon: ShieldAlert },
   { key: 'precautions', label: 'Lưu ý', icon: ShieldAlert },
   { key: 'storage', label: 'Bảo quản', icon: FileText },
 ];
@@ -29,7 +28,7 @@ const Product = () => {
     ingredients: ingredientsRef,
     uses: usesRef,
     directions: directionsRef,
-    sideEffects: sideEffectsRef,
+    side_effects: sideEffectsRef,
     precautions: precautionsRef,
     storage: storageRef
   };
@@ -41,13 +40,20 @@ const Product = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const snap = await getDoc(doc(db, 'products', id));
-        if (snap.exists()) {
-          const data = { id: snap.id, ...snap.data() };
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error) throw error;
+        if (data) {
           setProduct(data);
-          const imgs = Array.isArray(data.imageUrls) ? data.imageUrls : [];
-          setSelectedImage(data.imageUrl || imgs[0] || '');
+          const imgs = Array.isArray(data.image_urls) ? data.image_urls : [];
+          setSelectedImage(data.image_url || imgs[0] || '');
         }
+      } catch (error) {
+        console.error("Lỗi tải chi tiết sản phẩm:", error);
       } finally {
         setLoading(false);
       }
@@ -84,11 +90,11 @@ const Product = () => {
         <div className="grid lg:grid-cols-2 gap-8">
           <div>
             <div className="bg-gray-50 rounded-xl border h-96 md:h-[28rem] flex items-center justify-center overflow-hidden">
-              <img src={selectedImage || product.imageUrl} alt={product.name} className="w-full h-full object-contain p-2" />
+              <img src={selectedImage || product.image_url} alt={product.name} className="w-full h-full object-contain p-2" />
             </div>
-            {Array.isArray(product.imageUrls) && product.imageUrls.length > 0 && (
+            {Array.isArray(product.image_urls) && product.image_urls.length > 0 && (
               <div className="mt-4 flex gap-3 overflow-x-auto">
-                {[...new Set([product.imageUrl, ...product.imageUrls].filter(Boolean))].map((url, idx) => (
+                {[...new Set([product.image_url, ...product.image_urls].filter(Boolean))].map((url, idx) => (
                   <button
                     type="button"
                     key={idx}
@@ -107,9 +113,9 @@ const Product = () => {
             </h1>
             <div className="flex items-center gap-3 mt-3">
               <span className="text-2xl font-bold text-indigo-600">{product.price?.toLocaleString()} ₫</span>
-              {product.expiryMonths ? (
+              {product.expiry_months ? (
                 <span className="inline-flex items-center gap-1 text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                  <Clock size={16} /> HSD: {product.expiryMonths} tháng
+                  <Clock size={16} /> HSD: {product.expiry_months} tháng
                 </span>
               ) : null}
             </div>
@@ -117,33 +123,59 @@ const Product = () => {
             <div className="mt-5 bg-gray-50 border rounded-2xl p-5 space-y-4">
               <div className="flex gap-6">
                 <div className="w-48 md:w-56 text-gray-500">Dạng bào chế</div>
-                <div className="flex-1 text-gray-800">{product.dosageForm || 'Đang cập nhật'}</div>
+                <div className="flex-1 text-gray-800">{product.dosage_form || 'Đang cập nhật'}</div>
               </div>
               <div className="flex gap-6">
                 <div className="w-48 md:w-56 text-gray-500">Hạn sử dụng</div>
-                <div className="flex-1 text-gray-800">{product.expiryMonths ? `${product.expiryMonths} tháng` : 'Đang cập nhật'}</div>
+                <div className="flex-1 text-gray-800">{product.expiry_months ? `${product.expiry_months} tháng` : 'Đang cập nhật'}</div>
               </div>
               <div className="flex gap-6">
                 <div className="w-48 md:w-56 text-gray-500">Mô tả ngắn</div>
                 <div className="flex-1 text-gray-800">{product.description || 'Đang cập nhật'}</div>
               </div>
-              {Array.isArray(product.relatedDocs) && product.relatedDocs.length > 0 && (
-                <div className="flex gap-6 items-center">
-                  <div className="w-48 md:w-56 text-gray-500">Giấy tờ liên quan</div>
-                  <div className="flex-1">
+              
+              <div className="flex gap-6 items-center">
+                <div className="w-48 md:w-56 text-gray-500">Giấy tờ liên quan</div>
+                <div className="flex-1">
+                  {Array.isArray(product.related_docs) && product.related_docs.length > 0 ? (
                     <button 
                       onClick={() => setShowRelatedDocs(!showRelatedDocs)}
                       className="text-indigo-600 font-bold hover:underline flex items-center gap-1"
                     >
-                      <FileText size={16} /> Xem các giấy tờ pháp lý ({product.relatedDocs.length})
+                      <FileText size={16} /> Xem các giấy tờ pháp lý ({product.related_docs.length})
                     </button>
-                  </div>
+                  ) : (
+                    <span className="text-gray-400 italic text-sm">Chưa có giấy tờ liên quan</span>
+                  )}
                 </div>
-              )}
+              </div>
+
+              <div className="flex gap-6 items-center">
+                <div className="w-48 md:w-56 text-gray-500">QR liên quan</div>
+                <div className="flex-1">
+                  {Array.isArray(product.related_qrs) && product.related_qrs.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {product.related_qrs.map((url, idx) => (
+                        <a 
+                          key={idx} 
+                          href={url} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-10 h-10 border rounded-lg p-1 hover:border-primary transition bg-white"
+                        >
+                          <img src={url} alt="QR" className="w-full h-full object-contain" />
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 italic text-sm">Chưa có mã QR liên quan</span>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Hiển thị ảnh giấy tờ liên quan nếu được chọn */}
-            {showRelatedDocs && Array.isArray(product.relatedDocs) && (
+            {showRelatedDocs && Array.isArray(product.related_docs) && (
               <div className="mt-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-sm font-bold text-indigo-800 uppercase tracking-wider">Danh sách giấy tờ pháp lý</h3>
@@ -152,7 +184,7 @@ const Product = () => {
                   </button>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {product.relatedDocs.map((url, idx) => (
+                  {product.related_docs.map((url, idx) => (
                     <a 
                       key={idx} 
                       href={url} 

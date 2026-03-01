@@ -244,6 +244,21 @@ contract MediTrack {
         }));
     }
 
+    // Bước 7: Xóa lô hàng (Chỉ dành cho chủ sở hữu hoặc Admin)
+    function deleteBatch(uint256 _batchCode) public onlyBatchOwner(_batchCode) {
+        require(batches[_batchCode].isExists, unicode"Lô hàng không tồn tại");
+        
+        // Đánh dấu là không tồn tại nữa
+        batches[_batchCode].isExists = false;
+        
+        // Thêm sự kiện vào timeline
+        batchTimelines[_batchCode].push(TimelineEvent({
+            description: unicode"Lô hàng đã bị xóa khỏi hệ thống trên Blockchain",
+            timestamp: block.timestamp,
+            actor: msg.sender
+        }));
+    }
+
     // --- 7. CHỨC NĂNG BÁN HÀNG & CHỐNG GIẢ (POS LOGIC) ---
 
     // Hàm này được gọi bởi máy POS của Đại lý

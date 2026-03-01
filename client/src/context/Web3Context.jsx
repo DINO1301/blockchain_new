@@ -13,21 +13,31 @@ export const Web3Provider = ({ children }) => {
 
   // 1. Khởi tạo kết nối "Chế độ Khách" (Read-Only) ngay khi vào web
   const initReadOnlyContract = async () => {
-    try {
-      // Dùng RPC công cộng của mạng Sepolia (Không cần ví MetaMask)
-      // Đây là cổng giúp người thường "nhìn" vào Blockchain
-      const rpcUrl = "https://ethereum-sepolia-rpc.publicnode.com";
-      
-      // Sử dụng JsonRpcProvider trực tiếp từ ethers thay vì phụ thuộc window.ethereum
-      const readProvider = new ethers.JsonRpcProvider(rpcUrl);
-      
-      const readContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, readProvider);
-      setContract(readContract);
-      console.log("Đã khởi tạo chế độ Xem (Read-Only) ổn định");
-    } catch (error) {
-      console.error("Lỗi khởi tạo Read-Only:", error);
-      // Nếu RPC bị lỗi, thử lại sau 3 giây
-      setTimeout(initReadOnlyContract, 3000);
+    const rpcUrls = [
+      "https://ethereum-sepolia-rpc.publicnode.com",
+      "https://eth-sepolia.public.blastapi.io"
+    ];
+
+    for (const url of rpcUrls) {
+      try {
+        // Sepolia Chain ID: 11155111 - staticNetwork: true để bỏ qua bước nhận diện tự động
+        const readProvider = new ethers.JsonRpcProvider(url, 11155111, { staticNetwork: true });
+        const readContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, readProvider);
+        
+        // Thử gọi một hàm đơn giản để kiểm tra tốc độ phản hồi
+        await readProvider.getBlockNumber(); 
+        
+        // CHỈ setContract nếu chưa có currentAccount (tránh ghi đè bản Write-mode)
+        setContract(prev => {
+          if (prev && prev.runner && typeof prev.runner.sendTransaction === 'function') return prev;
+          return readContract;
+        });
+        
+        console.log(`Đã kết nối Blockchain (Read-only) qua: ${url} (Sepolia 11155111)`);
+        return; // Thoát nếu kết nối thành công
+      } catch (error) {
+        console.warn(`RPC ${url} chậm hoặc lỗi:`, error.message);
+      }
     }
   };
 

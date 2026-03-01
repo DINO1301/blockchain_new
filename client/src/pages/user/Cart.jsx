@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { db } from '../../services/firebase';
-import { runTransaction, doc, collection, serverTimestamp } from 'firebase/firestore';
+import { supabase } from '../../services/supabase';
 import { Trash2, Minus, Plus, ArrowRight, Loader2, ShoppingBag, CreditCard, Wallet } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -24,73 +23,87 @@ const Cart = () => {
     setIsProcessing(true);
 
     try {
-      await runTransaction(db, async (transaction) => {
-        const orderDetails = []; 
-        const productSnapshots = [];
+      const orderDetails = []; 
+      const productUpdates = [];
 
-        // BƯỚC 1: ĐỌC TẤT CẢ DỮ LIỆU (READS FIRST)
-        for (const item of cartItems) {
-          const productRef = doc(db, "products", item.id);
-          const productDoc = await transaction.get(productRef);
-          
-          if (!productDoc.exists()) {
-            throw new Error(`Sản phẩm "${item.name}" không tồn tại!`);
-          }
-          productSnapshots.push({ item, productDoc, productRef });
+      // BƯỚC 1: ĐỌC VÀ TÍNH TOÁN
+      for (const item of cartItems) {
+        const { data: productData, error: fetchError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', item.id)
+          .single();
+        
+        if (fetchError || !productData) {
+          throw new Error(`Sản phẩm "${item.name}" không tồn tại!`);
         }
 
-        // BƯỚC 2: TÍNH TOÁN VÀ GHI DỮ LIỆU (WRITES AFTER ALL READS)
-        for (const { item, productDoc, productRef } of productSnapshots) {
-          const productData = productDoc.data();
-          let currentBatches = productData.batches || [];
-          let remainingQtyToBuy = item.quantity;
-          const newBatches = [];
+        let currentBatches = productData.batches || [];
+        let remainingQtyToBuy = item.quantity;
+        const newBatches = [];
+        
+        for (const batch of currentBatches) {
+          const currentQty = Number(batch.qty); 
           
-          for (const batch of currentBatches) {
-            const currentQty = Number(batch.qty); 
+          if (remainingQtyToBuy > 0 && currentQty > 0) {
+            const take = Math.min(currentQty, remainingQtyToBuy);
             
-            if (remainingQtyToBuy > 0 && currentQty > 0) {
-              const take = Math.min(currentQty, remainingQtyToBuy);
-              
-              orderDetails.push({
-                productId: item.id,
-                productName: item.name,
-                batchId: batch.id,
-                quantityTaken: take
-              });
+            orderDetails.push({
+              productId: item.id,
+              productName: item.name,
+              batchId: batch.id,
+              quantityTaken: take
+            });
 
-              remainingQtyToBuy -= take;
-              newBatches.push({ ...batch, qty: currentQty - take });
-            } else {
-              newBatches.push(batch);
-            }
+            remainingQtyToBuy -= take;
+            newBatches.push({ ...batch, qty: currentQty - take });
+          } else {
+            newBatches.push(batch);
           }
-
-          if (remainingQtyToBuy > 0) {
-             throw new Error(`Sản phẩm "${item.name}" không đủ hàng (Thiếu ${remainingQtyToBuy} hộp)!`);
-          }
-
-          const newTotalStock = newBatches.reduce((sum, b) => sum + Number(b.qty), 0);
-          
-          transaction.update(productRef, {
-            batches: newBatches,
-            totalStock: newTotalStock 
-          });
         }
 
-        // Tạo Đơn hàng
-        const orderRef = doc(collection(db, "orders"));
-        transaction.set(orderRef, {
-          userId: user.uid,
-          userEmail: user.email,
-          items: cartItems, 
-          batchDetails: orderDetails,
-          totalAmount: totalAmount,
-          paymentMethod: paymentMethod,
-          status: paymentMethod === 'online' ? 'paid' : 'pending',
-          createdAt: serverTimestamp()
+        if (remainingQtyToBuy > 0) {
+           throw new Error(`Sản phẩm "${item.name}" không đủ hàng (Thiếu ${remainingQtyToBuy} hộp)!`);
+        }
+
+        const newTotalStock = newBatches.reduce((sum, b) => sum + Number(b.qty), 0);
+        
+        productUpdates.push({
+          id: item.id,
+          batches: newBatches,
+          total_stock: newTotalStock
         });
-      });
+      }
+
+      // BƯỚC 2: CẬP NHẬT DATABASE
+      // 2.1 Cập nhật từng sản phẩm
+      for (const update of productUpdates) {
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({
+            batches: update.batches,
+            total_stock: update.total_stock
+          })
+          .eq('id', update.id);
+        
+        if (updateError) throw updateError;
+      }
+
+      // 2.2 Tạo Đơn hàng
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert([{
+          user_id: user.id,
+          user_email: user.email,
+          items: cartItems, 
+          batch_details: orderDetails,
+          total_amount: totalAmount,
+          payment_method: paymentMethod,
+          status: paymentMethod === 'online' ? 'paid' : 'pending',
+          created_at: new Date().toISOString()
+        }]);
+
+      if (orderError) throw orderError;
 
       alert("✅ Đặt hàng thành công! Kho đã được cập nhật.");
       clearCart(); 
@@ -130,7 +143,7 @@ const Cart = () => {
         {cartItems.map((item) => (
           <div key={item.id} className="bg-white p-4 rounded-xl border border-gray-200 flex gap-4 items-center shadow-sm">
             <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
-              <img src={item.imageUrl} alt={item.name} className="w-full h-full object-contain" />
+              <img src={item.image_url || item.imageUrl} alt={item.name} className="w-full h-full object-contain" />
             </div>
             
             <div className="flex-1">

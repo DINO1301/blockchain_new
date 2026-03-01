@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Web3Context } from '../../context/Web3Context';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../services/firebase';
+import { supabase } from '../../services/supabase';
 import { Shield, Wallet, User, Lock } from 'lucide-react';
 
 const Profile = () => {
-  const { user } = useAuth(); // Thông tin từ Firebase
+  const { user, role } = useAuth(); // Thông tin từ Supabase
   const { currentAccount, connectWallet } = useContext(Web3Context); // Thông tin ví MetaMask
   
   const [loading, setLoading] = useState(false);
-  const [linkedWallet, setLinkedWallet] = useState(user?.walletAddress || ''); // Ví đã lưu trong DB
+  const [linkedWallet, setLinkedWallet] = useState(user?.wallet_address || ''); // Ví đã lưu trong DB
 
   // Hàm Liên kết ví (Chỉ dành cho Admin/Lab)
   const handleBindWallet = async () => {
@@ -21,17 +20,21 @@ const Profile = () => {
 
     setLoading(true);
     try {
-      // Cập nhật trường walletAddress vào Firestore
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
-        walletAddress: currentAccount
-      });
+      // Cập nhật trường wallet_address vào Supabase
+      const { error } = await supabase
+        .from('users')
+        .update({
+          wallet_address: currentAccount
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
       
       setLinkedWallet(currentAccount);
       alert("✅ Đã liên kết ví thành công! Từ giờ bạn chỉ có thể dùng ví này để thao tác.");
     } catch (error) {
       console.error(error);
-      alert("Lỗi liên kết ví");
+      alert("Lỗi liên kết ví: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -50,7 +53,7 @@ const Profile = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm text-gray-500">Họ tên</label>
-              <p className="font-medium text-lg">{user?.fullName || "Chưa cập nhật"}</p>
+              <p className="font-medium text-lg">{user?.full_name || "Chưa cập nhật"}</p>
             </div>
             <div>
               <label className="block text-sm text-gray-500">Email</label>
@@ -59,14 +62,14 @@ const Profile = () => {
             <div>
               <label className="block text-sm text-gray-500">Vai trò</label>
               <span className="inline-block px-3 py-1 bg-gray-100 rounded-full text-sm font-bold uppercase mt-1">
-                {user?.role}
+                {role}
               </span>
             </div>
           </div>
         </div>
 
         {/* CỘT 2: BẢO MẬT VÍ (Chỉ hiện cho Admin/Lab) */}
-        {['admin', 'lab'].includes(user?.role) && (
+        {['admin', 'lab'].includes(role) && (
           <div className="bg-white p-6 rounded-xl shadow-sm border border-orange-200">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-orange-700">
               <Shield/> Bảo mật Blockchain

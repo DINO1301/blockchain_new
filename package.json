@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@google-cloud/storage": "^7.19.0",
+    "@supabase/supabase-js": "^2.98.0"
+  }
+}

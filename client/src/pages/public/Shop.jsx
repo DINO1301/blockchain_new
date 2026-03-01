@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db } from '../../services/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { supabase } from '../../services/supabase';
 import { useCart } from '../../context/CartContext';
 import { ShoppingCart, Search, Filter } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -14,12 +13,13 @@ const Shop = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "products"));
-        const list = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setProducts(list);
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        setProducts(data || []);
       } catch (error) {
         console.error("Lỗi tải shop:", error);
       } finally {
@@ -62,14 +62,14 @@ const Shop = () => {
               <div className="h-48 bg-gray-50 overflow-hidden relative">
                 <Link to={`/product/${product.id}`}>
                   <img 
-                    src={product.imageUrl} 
+                    src={product.image_url} 
                     alt={product.name} 
                     className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
                   />
                 </Link>
                 {/* Badge tồn kho */}
                 <div className="absolute top-2 right-2 bg-white/90 px-2 py-1 text-xs font-bold rounded shadow-sm text-gray-600">
-                  Còn: {product.totalStock}
+                  Còn: {product.total_stock || 0}
                 </div>
               </div>
 
@@ -85,7 +85,7 @@ const Shop = () => {
                     {product.price?.toLocaleString()} ₫
                   </span>
                   
-                  {product.totalStock > 0 ? (
+                  {product.total_stock > 0 ? (
                     <button 
                       onClick={() => addToCart(product)}
                       className="bg-primary hover:bg-blue-700 text-white p-2 rounded-lg transition shadow-sm active:scale-95"

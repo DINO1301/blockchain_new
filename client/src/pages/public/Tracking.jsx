@@ -1,9 +1,8 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Web3Context } from '../../context/Web3Context';
-import { db } from '../../services/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { Search, Package, MapPin, Clock, User, CheckCircle2, Loader2, FileText, Image as LucideImage, ExternalLink } from 'lucide-react';
+import { supabase } from '../../services/supabase';
+import { Search, Package, MapPin, Clock, User, CheckCircle2, Loader2, FileText, Image as LucideImage, ExternalLink, QrCode } from 'lucide-react';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../../utils/constants';
 
@@ -37,7 +36,8 @@ const Tracking = () => {
       if (!activeContract) {
         console.log("Di động: Thử khởi tạo Provider Read-only thủ công...");
         const rpcUrl = "https://ethereum-sepolia-rpc.publicnode.com";
-        const readProvider = new ethers.JsonRpcProvider(rpcUrl);
+        // Sepolia Chain ID: 11155111 - staticNetwork: true
+        const readProvider = new ethers.JsonRpcProvider(rpcUrl, 11155111, { staticNetwork: true });
         activeContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, readProvider);
       }
 
@@ -47,7 +47,9 @@ const Tracking = () => {
       console.log("ID đang tra cứu:", numericId.toString());
       
       // 1. Lấy dữ liệu từ Blockchain
+      console.log("Đang gọi contract.getBatchDetails...");
       const batch = await activeContract.getBatchDetails(numericId);
+      console.log("Kết quả từ Contract:", batch);
       
       // Xử lý dữ liệu trả về từ Contract (Hỗ trợ cả object và array)
       const b_name = batch.name || batch[0];
@@ -68,16 +70,19 @@ const Tracking = () => {
         docUrls = await activeContract.getBatchDocuments(numericId);
       } catch (e) { console.log("Lô này chưa có giấy tờ"); }
 
-      // 4. Lấy dữ liệu từ Firebase (Ảnh mẫu sản phẩm) - TÁCH BIỆT ĐỂ KHÔNG LÀM LỖI CẢ TRANG
+      // 4. Lấy dữ liệu từ Supabase (Ảnh mẫu sản phẩm)
       try {
-        const q = query(collection(db, "products"), where("name", "==", b_name));
-        const fbSnap = await getDocs(q);
+        const { data, error: sbError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('name', b_name)
+          .single();
         
-        if (!fbSnap.empty) {
-          setProductDetails(fbSnap.docs[0].data());
+        if (!sbError && data) {
+          setProductDetails(data);
         }
-      } catch (fbError) {
-        console.warn("Firebase bị chặn quyền (Chưa login), bỏ qua phần lấy ảnh sản phẩm.");
+      } catch (sbErr) {
+        console.warn("Lỗi lấy thông tin sản phẩm từ Supabase:", sbErr);
       }
 
       // Cập nhật State
@@ -176,14 +181,14 @@ const Tracking = () => {
       {batchData && (
         <div className="grid lg:grid-cols-12 gap-6 items-start">
           
-          {/* Cột trái: Thông tin thuốc (Kết hợp Firebase) */}
+          {/* Cột trái: Thông tin thuốc (Kết hợp Supabase) */}
           <div className="lg:col-span-4">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:sticky lg:top-24">
               <div className="flex flex-col items-center text-center mb-6">
                 <div className="relative mb-6">
-                  {productDetails?.imageUrl ? (
+                  {productDetails?.image_url ? (
                     <img 
-                      src={productDetails.imageUrl} 
+                      src={productDetails.image_url} 
                       alt={batchData.name}
                       className="w-32 h-32 sm:w-40 sm:h-40 object-contain bg-gray-50 rounded-3xl p-4 shadow-inner"
                     />
@@ -288,7 +293,7 @@ const Tracking = () => {
                       </div>
                     )}
                   </div>
-                ) : (
+                ) : activeTab === 'docs' ? (
                   /* --- PHẦN GIẤY TỜ --- */
                   <div className="space-y-6 animate-in fade-in duration-500">
                     {docs.length > 0 ? (
@@ -329,7 +334,7 @@ const Tracking = () => {
                       </div>
                     )}
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           </div>

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Web3Context } from '../../context/Web3Context';
-import { Package, Truck, Loader2, QrCode, X, Printer, CheckCircle2, FileText, Upload, Image as LucideImage, ExternalLink } from 'lucide-react';
-import { db, storage } from '../../services/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { useAuth } from '../../context/AuthContext';
+import { Package, Truck, Loader2, QrCode, X, Printer, CheckCircle2, FileText, Upload, Image as LucideImage, ExternalLink, Trash2, Download } from 'lucide-react';
+import { supabase } from '../../services/supabase';
 import { QRCodeSVG } from 'qrcode.react';
 
 const Inventory = () => {
   const { contract, currentAccount } = useContext(Web3Context);
+  const { user } = useAuth();
   
   const [myBatches, setMyBatches] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,6 @@ const Inventory = () => {
   const [deliveryBatch, setDeliveryBatch] = useState(null); // Modal kết thúc
   const [docsBatch, setDocsBatch] = useState(null); // Modal cập nhật giấy tờ
   const [existingDocUrls, setExistingDocUrls] = useState([]); // Giấy tờ đã có trên BC
-  const [docFiles, setDocsFiles] = useState([]); // File ảnh giấy tờ
   const [docLinks, setDocLinks] = useState([]); // Link ảnh nhập tay
   const [linkInput, setLinkInput] = useState(''); // Ô nhập link
   const [isUploading, setIsUploading] = useState(false);
@@ -25,8 +24,120 @@ const Inventory = () => {
   const [deliveryNote, setDeliveryNote] = useState(''); // Ghi chú kết thúc
   const [transfering, setTransfering] = useState(false);
   const [delivering, setDelivering] = useState(false);
-  console.log(window.location.origin);
+  const [deleting, setDeleting] = useState(false); // Thêm state cho xóa lô hàng
+  const [isUploadingDocs, setIsUploadingDocs] = useState(false); // State cho nút upload file
+
+  const handleDocFileUpload = async (event) => {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+
+    // Kiểm tra định dạng và dung lượng cho từng file
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    const validFiles = files.filter(file => {
+      if (!allowedTypes.includes(file.type)) {
+        alert(`❌ File "${file.name}" không đúng định dạng (Chỉ JPG, PNG, WEBP, PDF).`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`❌ File "${file.name}" quá lớn (>5MB).`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setIsUploadingDocs(true);
+    try {
+      const uploadPromises = validFiles.map(async (file) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `documents/${fileName}`;
+
+        const { error } = await supabase.storage
+          .from('meditrack')
+          .upload(filePath, file);
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('meditrack')
+          .getPublicUrl(filePath);
+        
+        return publicUrl;
+      });
+
+      const publicUrls = await Promise.all(uploadPromises);
+
+      setDocLinks(prev => [...prev, ...publicUrls]);
+      alert(`✅ Đã tải ${publicUrls.length} tài liệu lên thành công!`);
+    } catch (error) {
+      console.error("Lỗi upload:", error);
+      alert("Lỗi upload: " + (error.message || "Không rõ lỗi"));
+    } finally {
+      setIsUploadingDocs(false);
+      event.target.value = '';
+    }
+  };
   
+  const downloadQRCode = () => {
+      const svg = document.querySelector("#batch-qr-code");
+      if (!svg) return alert("Không tìm thấy mã QR");
+
+      // Bước 1: Chuyển SVG thành chuỗi mã hóa
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      
+      // Tạo một ảnh tạm để vẽ
+      const img = new Image();
+      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+
+      img.onload = () => {
+        // Thiết lập kích thước ảnh tải về (Rất nét)
+        canvas.width = 1200;
+        canvas.height = 1400;
+        
+        // Vẽ nền trắng hoàn toàn
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Vẽ mã QR (Căn giữa)
+        ctx.drawImage(img, 200, 150, 800, 800);
+        
+        // Viết chữ tiêu đề
+        ctx.fillStyle = "#000000";
+        ctx.font = "bold 50px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(`MÃ TRUY XUẤT NGUỐC GỐC`, canvas.width / 2, 1050);
+        
+        // Viết mã lô
+        ctx.font = "bold 40px Arial";
+        ctx.fillStyle = "#2563eb"; // Màu xanh primary
+        ctx.fillText(`Lô hàng: #${qrBatch.id}`, canvas.width / 2, 1130);
+        
+        // Viết tên thuốc
+        ctx.font = "30px Arial";
+        ctx.fillStyle = "#666666";
+        ctx.fillText(qrBatch.name, canvas.width / 2, 1200);
+
+        // Tạo link tải về dưới dạng PNG
+        const pngUrl = canvas.toDataURL("image/png");
+        const downloadLink = document.createElement("a");
+        downloadLink.href = pngUrl;
+        downloadLink.download = `QR_LOHANG_${qrBatch.id}.png`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        // Giải phóng bộ nhớ
+        URL.revokeObjectURL(url);
+      };
+
+      img.src = url;
+    };
+
   const fetchMyInventory = async () => {
     if (!contract || !currentAccount) return;
     setLoading(true);
@@ -38,16 +149,25 @@ const Inventory = () => {
       const totalBatches = await contract.batchCount();
       const userAddr = currentAccount.toLowerCase();
       const contractAdmin = adminAddress.toLowerCase();
-      const isAdmin = userAddr === contractAdmin;
+      // Quy ước: chỉ email này được xem tất cả lô như admin on-chain
+      const ADMIN_EMAIL = 'nguyenhieu@gmail.com';
+      const isAdmin = (user?.email === ADMIN_EMAIL) || (userAddr === contractAdmin);
 
       console.log("Tổng số lô hàng:", Number(totalBatches));
       console.log("Ví của bạn:", userAddr);
       console.log("Admin của Contract:", contractAdmin);
-      console.log("Quyền Admin:", isAdmin);
+      console.log("Quyền Admin (email/contract):", isAdmin);
 
       for (let i = 0; i < Number(totalBatches); i++) {
         try {
           const bCode = await contract.allBatchCodes(i);
+          if (bCode.toString() === "0") continue;
+
+          // Kiểm tra xem lô hàng có tồn tại thực sự không trước khi gọi getBatchDetails
+          // contract.batches(bCode) trả về Struct { batchCode, name, ..., isExists }
+          const batchInfo = await contract.batches(bCode);
+          if (!batchInfo.isExists) continue;
+
           const batch = await contract.getBatchDetails(bCode);
           
           // CÁCH TRUY XUẤT AN TOÀN TUYỆT ĐỐI (Hỗ trợ cả Array và Object)
@@ -72,7 +192,7 @@ const Inventory = () => {
             });
           }
         } catch (e) {
-          console.log(`Lô tại index #${i} không tồn tại hoặc lỗi:`, e.message);
+          console.warn(`Lô tại index #${i} (Mã: ${i}) không khả dụng:`, e.message);
         }
       }
       setMyBatches(tempBatches);
@@ -87,6 +207,15 @@ const Inventory = () => {
     e.preventDefault();
     if (!contract || !selectedBatch) return;
 
+    if (!currentAccount) {
+      return alert("⚠️ Vui lòng kết nối ví MetaMask để thực hiện giao dịch này!");
+    }
+
+    // KIỂM TRA CONTRACT CÓ QUYỀN GHI (SIGNER) CHƯA
+    if (!contract || !contract.runner || typeof contract.runner.sendTransaction !== 'function') {
+      return alert("⚠️ Lỗi: Contract đang ở chế độ Read-only. Vui lòng kết nối lại ví hoặc tải lại trang.");
+    }
+
     try {
       setTransfering(true);
       
@@ -96,9 +225,6 @@ const Inventory = () => {
         transferData.note
       );
       await tx.wait(); // Chờ xác nhận thành công trên Blockchain
-
-      // KHÔNG XÓA KHỎI FIREBASE NỮA - CHỈ CẬP NHẬT TRẠNG THÁI NẾU CẦN
-      // (Hoặc giữ nguyên để có thể chuyển đi nhiều lần)
 
       alert("✅ Chuyển hàng thành công!");
       setSelectedBatch(null); 
@@ -116,6 +242,15 @@ const Inventory = () => {
   const handleDeliver = async (e) => {
     e.preventDefault();
     if (!contract || !deliveryBatch) return;
+
+    if (!currentAccount) {
+      return alert("⚠️ Vui lòng kết nối ví MetaMask để thực hiện giao dịch này!");
+    }
+
+    // KIỂM TRA CONTRACT CÓ QUYỀN GHI (SIGNER) CHƯA
+    if (!contract || !contract.runner || typeof contract.runner.sendTransaction !== 'function') {
+      return alert("⚠️ Lỗi: Contract đang ở chế độ Read-only. Vui lòng kết nối lại ví hoặc tải lại trang.");
+    }
 
     try {
       setDelivering(true);
@@ -146,6 +281,78 @@ const Inventory = () => {
     }
   };
 
+  const handleDeleteBatch = async (batch) => {
+    if (!contract) return;
+    const batchId = batch.id;
+    
+    if (!currentAccount) {
+      return alert("⚠️ Vui lòng kết nối ví MetaMask để thực hiện giao dịch này!");
+    }
+
+    // KIỂM TRA CONTRACT CÓ QUYỀN GHI (SIGNER) CHƯA
+    if (!contract || !contract.runner || typeof contract.runner.sendTransaction !== 'function') {
+      return alert("⚠️ Lỗi: Contract đang ở chế độ Read-only. Vui lòng kết nối lại ví hoặc tải lại trang.");
+    }
+
+    const confirmDelete = window.confirm(`Bạn có chắc chắn muốn XÓA lô hàng #${batchId}? Hành động này sẽ vô hiệu hóa lô hàng trên Blockchain và TRỪ số lượng tồn kho trong hệ thống. Thao tác này không thể hoàn tác.`);
+    if (!confirmDelete) return;
+
+    try {
+      setDeleting(true);
+      
+      // 1. GỬI GIAO DỊCH BLOCKCHAIN
+      const tx = await contract.deleteBatch(batchId);
+      console.log("Đang chờ xác nhận xóa trên Blockchain... Hash:", tx.hash);
+      await tx.wait();
+
+      // 2. CẬP NHẬT SUPABASE (GIẢM TỒN KHO)
+      console.log("Đang cập nhật tồn kho trong Supabase...");
+      try {
+        // Tìm sản phẩm trong Supabase dựa trên tên sản phẩm của lô hàng
+        const { data: product, error: fetchError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('name', batch.name)
+          .single();
+        
+        if (!fetchError && product) {
+          // Tìm thông tin lô hàng này trong mảng batches của sản phẩm
+          const currentBatches = product.batches || [];
+          const batchInfo = currentBatches.find(b => b.id === batchId);
+          const qtyToRemove = batchInfo ? Number(batchInfo.qty) : 0;
+
+          if (qtyToRemove > 0) {
+            // Cập nhật: Lọc bỏ lô hàng đã xóa và giảm total_stock
+            const updatedBatches = currentBatches.filter(b => b.id !== batchId);
+            const updatedStock = (Number(product.total_stock) || 0) - qtyToRemove;
+
+            const { error: updateError } = await supabase
+              .from('products')
+              .update({
+                batches: updatedBatches,
+                total_stock: updatedStock
+              })
+              .eq('id', product.id);
+            
+            if (updateError) throw updateError;
+            console.log(`Đã trừ ${qtyToRemove} sản phẩm khỏi kho.`);
+          }
+        }
+      } catch (sbError) {
+        console.error("Lỗi cập nhật Supabase sau khi xóa Blockchain:", sbError);
+      }
+
+      alert(`✅ Đã xóa lô hàng #${batchId} thành công!`);
+      fetchMyInventory();
+    } catch (error) {
+      console.error("Lỗi xóa lô hàng:", error);
+      const errorMsg = error.reason || error.message || "Giao dịch bị từ chối";
+      alert("❌ XÓA THẤT BẠI: \n" + errorMsg);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const openDocsModal = async (batch) => {
     setDocsBatch(batch);
     setExistingDocUrls([]);
@@ -160,27 +367,32 @@ const Inventory = () => {
 
   const handleUpdateDocs = async (e) => {
     e.preventDefault();
-    if (!contract || !docsBatch || (docFiles.length === 0 && docLinks.length === 0)) {
-      return alert("Vui lòng chọn file hoặc nhập ít nhất một link ảnh!");
+    if (!contract || !docsBatch || docLinks.length === 0) {
+      return alert("Vui lòng nhập ít nhất một link ảnh!");
     }
 
     try {
       setIsUploading(true);
       
-      // --- BƯỚC 1: KIỂM TRA QUYỀN TRƯỚC KHI GỬI (PRE-FLIGHT CHECK) ---
-      console.log("--- ĐANG KIỂM TRA QUYỀN TRÊN BLOCKCHAIN ---");
-      const signerAddr = await contract.runner.getAddress();
+      // KIỂM TRA CONTRACT CÓ QUYỀN GHI (SIGNER) CHƯA
+      if (!contract || !contract.runner || typeof contract.runner.sendTransaction !== 'function') {
+        throw new Error("Contract đang ở chế độ Read-only. Vui lòng kết nối lại ví.");
+      }
+
+      // signerAddr lấy trực tiếp từ currentAccount (Web3Context)
+      const signerAddr = currentAccount;
+      if (!signerAddr) {
+        throw new Error("Vui lòng kết nối ví MetaMask!");
+      }
+
       const batchId = BigInt(docsBatch.id);
       
-      // Lấy thông tin thực tế từ Blockchain để đối chiếu
       const batchInfo = await contract.getBatchDetails(batchId);
       const contractAdmin = await contract.admin();
       
-      // Lấy danh sách giấy tờ hiện có để tránh bị ghi đè mất cái cũ
       let existingDocs = [];
       try {
         existingDocs = await contract.getBatchDocuments(batchId);
-        console.log("Giấy tờ hiện có trên Blockchain:", existingDocs);
       } catch (e) {
         console.log("Lô này chưa có giấy tờ cũ.");
       }
@@ -189,77 +401,33 @@ const Inventory = () => {
       const isCreator = batchInfo.creator.toLowerCase() === signerAddr.toLowerCase();
       const isContractAdmin = contractAdmin.toLowerCase() === signerAddr.toLowerCase();
 
-      console.log("Ví đang dùng:", signerAddr);
-      console.log("Admin hợp đồng:", contractAdmin);
-      console.log("Chủ lô hàng:", batchInfo.currentOwner);
-      console.log("Quyền: Owner?", isOwner, "| Creator?", isCreator, "| Admin?", isContractAdmin);
-
       if (!isOwner && !isCreator && !isContractAdmin) {
-        throw new Error(`Bạn không có quyền sửa lô này. \n- Ví hiện tại: ${signerAddr.slice(0,6)}...\n- Lô này thuộc về: ${batchInfo.currentOwner.slice(0,6)}...`);
-      }
-
-      // --- BƯỚC 2: TẢI ẢNH LÊN FIREBASE (NẾU CÓ) ---
-      const uploadedUrls = [];
-      if (docFiles.length > 0) {
-        for (let i = 0; i < docFiles.length; i++) {
-          const file = docFiles[i];
-          // Kiểm tra kích thước file (Giới hạn 5MB để tránh quá tải)
-          if (file.size > 5 * 1024 * 1024) {
-             throw new Error(`File ${file.name} quá lớn (>5MB). Vui lòng chọn file nhỏ hơn.`);
-          }
-          
-          console.log(`Đang tải file ${i + 1}/${docFiles.length}: ${file.name}...`);
-          try {
-            // Tên file chuẩn hóa để tránh lỗi ký tự đặc biệt trong URL
-            const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-            const storageRef = ref(storage, `batch_docs/${docsBatch.id}/${fileName}`);
-            const snapshot = await uploadBytes(storageRef, file);
-            const url = await getDownloadURL(snapshot.ref);
-            uploadedUrls.push(url);
-          } catch (storageErr) {
-            console.error("Lỗi tại Firebase Storage:", storageErr);
-            throw new Error(`Không thể tải file ${file.name} lên máy chủ.`);
-          }
-        }
+        throw new Error(`Bạn không có quyền sửa lô này.`);
       }
 
       // Gộp và chuẩn hóa (Trim spaces) các link nhập tay
       const cleanDocLinks = docLinks.map(link => link.trim()).filter(link => link.length > 0);
       
-      // GỘP CẢ CÁI CŨ + FILE MỚI + LINK MỚI
-      const allUrls = [...existingDocs, ...uploadedUrls, ...cleanDocLinks];
+      // GỘP CẢ CÁI CŨ + LINK MỚI
+      const allUrls = [...existingDocs, ...cleanDocLinks];
 
       if (allUrls.length === 0) {
         throw new Error("Không có dữ liệu hợp lệ để cập nhật.");
       }
 
-      // --- BƯỚC 3: GỬI GIAO DỊCH BLOCKCHAIN ---
-      console.log("--- GỬI BLOCKCHAIN (PHƯƠNG ÁN TỐI GIẢN) ---");
-      console.log("Dữ liệu gửi đi:", { finalBatchId: docsBatch.id, allUrls });
-      
-      const finalBatchId = BigInt(docsBatch.id);
-      
-      // Gửi giao dịch và ép buộc Gas cao (1M) để hỗ trợ các bộ hồ sơ/URL dài/phức tạp
-      const tx = await contract.updateBatchDocuments(finalBatchId, allUrls, {
+      const tx = await contract.updateBatchDocuments(batchId, allUrls, {
         gasLimit: 1000000 
       });
       
-      console.log("Đang chờ xác nhận... Hash:", tx.hash);
-      const receipt = await tx.wait();
+      await tx.wait();
 
-      if (receipt.status === 1) {
-        alert("✅ Thành công! Giấy tờ đã được lưu lên Blockchain.");
-        setDocsBatch(null);
-        setDocsFiles([]);
-        setDocLinks([]);
-        setLinkInput('');
-        fetchMyInventory();
-      } else {
-        throw new Error("Giao dịch bị thất bại trên Blockchain (Status 0)");
-      }
+      alert("✅ Thành công! Giấy tờ đã được lưu lên Blockchain.");
+      setDocsBatch(null);
+      setDocLinks([]);
+      setLinkInput('');
+      fetchMyInventory();
     } catch (error) {
       console.error("LỖI CHI TIẾT:", error);
-      // Hiển thị thông báo lỗi thân thiện
       const errorMsg = error.reason || error.message || "Giao dịch bị từ chối";
       alert("❌ KHÔNG THÀNH CÔNG: \n" + errorMsg);
     } finally {
@@ -284,6 +452,12 @@ const Inventory = () => {
 
       {loading ? (
         <div className="text-center py-10"><Loader2 className="animate-spin mx-auto"/> Đang tải dữ liệu Blockchain...</div>
+      ) : !currentAccount ? (
+        <div className="text-center py-20 bg-white rounded-xl border-2 border-dashed border-gray-200">
+          <Truck className="mx-auto text-gray-300 mb-4" size={48} />
+          <h2 className="text-xl font-bold text-gray-700 mb-2">Chưa kết nối ví MetaMask</h2>
+          <p className="text-gray-500 mb-6">Vui lòng kết nối ví để xem và quản lý kho hàng của bạn.</p>
+        </div>
       ) : myBatches.length === 0 ? (
         <div className="text-center py-10 bg-white rounded-lg border border-dashed border-gray-300">
           <p className="text-gray-500">Kho hàng trống. Bạn chưa sở hữu lô thuốc nào.</p>
@@ -363,9 +537,19 @@ const Inventory = () => {
                   </>
                 )}
                 
+                {/* Nút Xóa lô hàng - Hiển thị cho cả status 3 */}
+                <button 
+                  onClick={() => handleDeleteBatch(batch)}
+                  disabled={deleting || !batch.isOwnerOnChain}
+                  className="w-full py-2.5 bg-red-50 text-red-600 border border-red-100 font-medium rounded-lg hover:bg-red-100 flex items-center justify-center gap-2 transition text-sm disabled:opacity-50"
+                >
+                  {deleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                  Xóa lô hàng
+                </button>
+                
                 {batch.status === 3 && (
-                  <div className="h-[92px] flex items-center justify-center border border-dashed border-gray-200 rounded-lg bg-gray-50 text-gray-400 text-xs text-center px-4">
-                    Lô hàng này đã hoàn tất hành trình và không thể chỉnh sửa thêm.
+                  <div className="mt-2 flex items-center justify-center border border-dashed border-gray-200 rounded-lg bg-gray-50 text-gray-400 text-[10px] text-center px-4 py-2">
+                    Lô hàng này đã hoàn tất hành trình.
                   </div>
                 )}
               </div>
@@ -493,32 +677,51 @@ const Inventory = () => {
                 </div>
               )}
 
-              {/* Phần 1: Tải file lên */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Tải ảnh từ máy tính</label>
-                <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-indigo-300 transition cursor-pointer relative">
+              {/* Phần 1: Tải ảnh từ máy tính (Kéo thả) */}
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700">Tải ảnh từ máy tính</label>
+                <div 
+                  className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition cursor-pointer hover:bg-blue-50/50 ${
+                    isUploadingDocs ? 'border-gray-300 bg-gray-50' : 'border-indigo-200'
+                  }`}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                      handleDocFileUpload({ target: { files } });
+                    }
+                  }}
+                  onClick={() => document.getElementById('doc-upload-input').click()}
+                >
                   <input 
+                    id="doc-upload-input"
                     type="file" 
+                    className="hidden" 
+                    accept="image/*,application/pdf" 
                     multiple 
-                    accept="image/*"
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={(e) => setDocsFiles(Array.from(e.target.files))}
+                    onChange={handleDocFileUpload} 
                   />
-                  <div className="flex flex-col items-center">
-                    <Upload size={30} className="text-indigo-500 mb-1" />
-                    <p className="text-xs text-gray-600 font-medium">Chọn hoặc kéo thả ảnh</p>
-                  </div>
+                  {isUploadingDocs ? (
+                    <Loader2 size={32} className="animate-spin text-indigo-500 mb-2" />
+                  ) : (
+                    <Upload size={32} className="text-indigo-500 mb-2" />
+                  )}
+                  <span className="text-sm text-gray-600 font-medium">
+                    {isUploadingDocs ? "Đang tải lên..." : "Chọn hoặc kéo thả ảnh"}
+                  </span>
                 </div>
               </div>
 
-              {/* Phần 2: Nhập link ảnh */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Hoặc nhập link ảnh trực tiếp</label>
+              {/* Phần 2: Nhập link ảnh trực tiếp */}
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700">Hoặc nhập link ảnh trực tiếp</label>
                 <div className="flex gap-2">
                   <input 
                     type="url"
                     placeholder="https://..."
-                    className="flex-1 p-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-1 p-3 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm"
                     value={linkInput}
                     onChange={(e) => setLinkInput(e.target.value)}
                   />
@@ -530,43 +733,37 @@ const Inventory = () => {
                         setLinkInput('');
                       }
                     }}
-                    className="px-3 py-2 bg-gray-900 text-white rounded-lg text-sm font-bold"
+                    className="px-6 py-3 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-black transition shadow-md"
                   >
                     Thêm
                   </button>
                 </div>
               </div>
 
-              {/* Danh sách các file/link đã chọn */}
-              {(docFiles.length > 0 || docLinks.length > 0) && (
-                <div className="bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wider">Danh sách giấy tờ chuẩn bị lưu</p>
+              {/* Danh sách các link đã chọn */}
+              {docLinks.length > 0 && (
+                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-inner">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-3 tracking-wider">DANH SÁCH GIẤY TỜ CHUẨN BỊ LƯU</p>
                   
-                  {/* Files */}
-                  {docFiles.map((f, i) => (
-                    <div key={`file-${i}`} className="text-xs text-gray-600 flex items-center justify-between gap-2 mb-1 p-1 hover:bg-white rounded">
-                      <div className="flex items-center gap-2 truncate">
-                        <LucideImage size={12} className="text-indigo-400" />
-                        <span className="truncate">{f.name}</span>
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {docLinks.map((link, i) => (
+                      <div key={`link-${i}`} className="text-xs text-gray-600 flex items-center justify-between gap-2 p-2 bg-white rounded-lg shadow-sm border border-gray-50 group hover:border-indigo-100 transition">
+                        <div className="flex items-center gap-2 truncate">
+                          <FileText size={14} className="text-indigo-400" />
+                          <a href={link} target="_blank" rel="noreferrer" className="truncate text-blue-600 underline hover:text-blue-700 font-medium">
+                            {link.split('/').pop().substring(0, 30)}...
+                          </a>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => setDocLinks(docLinks.filter((_, idx) => idx !== i))}
+                          className="p-1 hover:bg-red-50 rounded-md transition text-red-400 opacity-0 group-hover:opacity-100"
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
-                      <button type="button" onClick={() => setDocsFiles(docFiles.filter((_, idx) => idx !== i))}>
-                        <X size={12} className="text-red-400" />
-                      </button>
-                    </div>
-                  ))}
-
-                  {/* Links */}
-                  {docLinks.map((link, i) => (
-                    <div key={`link-${i}`} className="text-xs text-gray-600 flex items-center justify-between gap-2 mb-1 p-1 hover:bg-white rounded">
-                      <div className="flex items-center gap-2 truncate text-blue-600 underline">
-                        <FileText size={12} className="text-blue-400" />
-                        <span className="truncate">{link}</span>
-                      </div>
-                      <button type="button" onClick={() => setDocLinks(docLinks.filter((_, idx) => idx !== i))}>
-                        <X size={12} className="text-red-400" />
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -575,7 +772,6 @@ const Inventory = () => {
                   type="button"
                   onClick={() => {
                     setDocsBatch(null);
-                    setDocsFiles([]);
                     setDocLinks([]);
                     setLinkInput('');
                   }}
@@ -585,7 +781,7 @@ const Inventory = () => {
                 </button>
                 <button 
                   type="submit"
-                  disabled={isUploading || (docFiles.length === 0 && docLinks.length === 0)}
+                  disabled={isUploading || docLinks.length === 0}
                   className="flex-1 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition disabled:opacity-50 flex justify-center items-center gap-2 shadow-lg shadow-indigo-100"
                 >
                   {isUploading ? <Loader2 className="animate-spin" size={20}/> : "Xác nhận lưu lên Blockchain"}
@@ -613,6 +809,7 @@ const Inventory = () => {
             <div className="p-4 border-2 border-gray-900 rounded-xl bg-white">
               {/* 👇 THAY ĐỔI 2: Dùng QRCodeSVG thay vì QRCode */}
               <QRCodeSVG 
+                id="batch-qr-code"
                 value={`${window.location.origin}/tracking?id=${qrBatch.id}`} 
                 size={200}
                 level="H"
@@ -623,12 +820,20 @@ const Inventory = () => {
               Quét mã này để xem nguồn gốc và hành trình sản phẩm trên Blockchain.
             </p>
 
-            <button 
-              onClick={() => window.print()}
-              className="mt-6 w-full py-3 bg-gray-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition"
-            >
-              <Printer size={18}/> In Tem Nhãn
-            </button>
+            <div className="flex gap-3 w-full mt-6">
+              <button 
+                onClick={downloadQRCode}
+                className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition"
+              >
+                <Download size={18}/> Tải xuống
+              </button>
+              <button 
+                onClick={() => window.print()}
+                className="flex-1 py-3 bg-gray-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition"
+              >
+                <Printer size={18}/> In Tem
+              </button>
+            </div>
           </div>
         </div>
       )}

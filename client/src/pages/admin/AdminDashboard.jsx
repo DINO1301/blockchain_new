@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Web3Context } from '../../context/Web3Context';
-import { db } from '../../services/firebase';
-import { collection, getDocs, doc, updateDoc, arrayUnion, increment, getDoc } from 'firebase/firestore';
+import { supabase } from '../../services/supabase';
 import { PackagePlus, Loader2, CheckCircle, AlertCircle, Box } from 'lucide-react';
 
 const Dashboard = () => {
   const { contract, currentAccount } = useContext(Web3Context);
   
   // State
-  const [products, setProducts] = useState([]); // Danh sách sản phẩm từ Firebase
+  const [products, setProducts] = useState([]); // Danh sách sản phẩm từ Supabase
   const [selectedProduct, setSelectedProduct] = useState(''); // ID sản phẩm đang chọn
   const [batchCode, setBatchCode] = useState(''); // MÃ LÔ NHẬP TAY
   const [quantity, setQuantity] = useState(100); // Số lượng thuốc trong lô này
@@ -17,16 +16,17 @@ const Dashboard = () => {
   const [status, setStatus] = useState({ loading: false, error: '', success: '' });
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
 
-  // 1. Lấy danh sách sản phẩm mẫu từ Firebase khi vào trang
+  // 1. Lấy danh sách sản phẩm mẫu từ Supabase khi vào trang
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "products"));
-        const productList = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setProducts(productList);
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        setProducts(data || []);
       } catch (error) {
         console.error("Lỗi lấy sản phẩm:", error);
       } finally {
@@ -41,6 +41,15 @@ const Dashboard = () => {
     e.preventDefault();
     if (!selectedProduct) return alert("Vui lòng chọn sản phẩm mẫu!");
     
+    if (!currentAccount) {
+      return alert("⚠️ Vui lòng kết nối ví MetaMask để thực hiện giao dịch này!");
+    }
+
+    // KIỂM TRA CONTRACT CÓ QUYỀN GHI (SIGNER) CHƯA
+    if (!contract || !contract.runner || typeof contract.runner.sendTransaction !== 'function') {
+      return alert("⚠️ Lỗi: Contract đang ở chế độ Read-only. Vui lòng kết nối lại ví hoặc tải lại trang.");
+    }
+
     setStatus({ loading: true, error: '', success: '' });
 
     try {
@@ -52,7 +61,6 @@ const Dashboard = () => {
       // B. GHI BLOCKCHAIN
       console.log("1. Đang ghi lên Blockchain...");
       
-      // Ép kiểu batchCode sang số để khớp với uint256 trong Smart Contract
       const numericBatchCode = Number(batchCode);
       if (isNaN(numericBatchCode) || numericBatchCode <= 0) {
         throw new Error("Mã lô phải là một số lớn hơn 0");
@@ -69,31 +77,38 @@ const Dashboard = () => {
 
       console.log("-> Lô mới có Mã:", batchCode);
 
-      // C. CẬP NHẬT FIREBASE (LOGIC MỚI: FIFO SUPPORT)
-      console.log("2. Đang đồng bộ về Firebase...");
-      const productRef = doc(db, "products", selectedProduct);
+      // C. CẬP NHẬT SUPABASE
+      console.log("2. Đang đồng bộ về Supabase...");
       
-      // Bước 1: Lấy dữ liệu cũ về để xem mảng batches hiện tại
-      const productSnap = await getDoc(productRef);
+      // Bước 1: Lấy dữ liệu cũ về
+      const { data: currentProduct, error: fetchError } = await supabase
+        .from('products')
+        .select('batches, total_stock')
+        .eq('id', selectedProduct)
+        .single();
       
-      if (productSnap.exists()) {
-        const currentData = productSnap.data();
-        const currentBatches = currentData.batches || []; // Mảng cũ
-        
-        // Bước 2: Tạo object lô mới với đầy đủ thông tin số lượng
-        const newBatchObj = {
-          id: batchCode, // DÙNG MÃ LÔ LÀM ID
-          qty: Number(quantity), // Lưu số lượng của riêng lô này
-          expiryDate: "2026-01-01", // (Tạm fix cứng hoặc cho nhập thêm input date nếu bạn muốn)
-          createdAt: new Date().toISOString()
-        };
+      if (fetchError) throw fetchError;
 
-        // Bước 3: Ghi đè lại mảng mới (Nối cũ + mới)
-        await updateDoc(productRef, {
-          batches: [...currentBatches, newBatchObj], 
-          totalStock: increment(Number(quantity)) // Vẫn cộng tổng để hiển thị ngoài Shop cho nhanh
-        });
-      }
+      const currentBatches = currentProduct.batches || [];
+      const newBatchObj = {
+        id: batchCode.toString(),
+        qty: Number(quantity),
+        expiryDate: "2026-01-01",
+        createdAt: new Date().toISOString()
+      };
+
+      const updatedBatches = [...currentBatches, newBatchObj];
+      const updatedStock = (Number(currentProduct.total_stock) || 0) + Number(quantity);
+
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({
+          batches: updatedBatches,
+          total_stock: updatedStock
+        })
+        .eq('id', selectedProduct);
+
+      if (updateError) throw updateError;
 
       setStatus({ 
         loading: false, 
@@ -151,7 +166,7 @@ const Dashboard = () => {
               </div>
             )}
             <p className="text-xs text-gray-500 mt-1">
-              *Dữ liệu này được lấy từ Firebase.
+              *Dữ liệu này được lấy từ Supabase.
             </p>
           </div>
 
@@ -194,7 +209,7 @@ const Dashboard = () => {
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
             />
-            <p className="text-xs text-gray-400 mt-1">*Sẽ cập nhật vào tồn kho Web2.</p>
+            <p className="text-xs text-gray-400 mt-1">*Sẽ cập nhật vào tồn kho Supabase.</p>
           </div>
 
           {/* Thông báo */}

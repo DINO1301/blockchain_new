@@ -1,15 +1,136 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../../services/firebase';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { supabase } from '../../services/supabase';
 import { 
   Edit3, Save, Loader2, Plus, X, Pill, Clock, FileText, ShieldAlert, Archive, 
   Image as ImageIcon, Download, Search, CheckSquare, Square, 
   Package, CircleDollarSign, Calendar, Info, FlaskConical, Stethoscope, Activity, 
-  AlertTriangle, Thermometer, Images, FileSearch 
+  AlertTriangle, Thermometer, FileSearch, QrCode, Upload 
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+
+const UploadSection = ({ title, field, value, icon: IconEl, colorClass, uploading, handleFileUpload, setForm }) => {
+  const [localLink, setLocalLink] = useState('');
+  const inputId = `edit-upload-${field}`;
+  const urls = (value || '').split(',').map(u => u.trim()).filter(u => u);
+
+  // Hàm xóa ảnh/file khỏi danh sách
+  const removeFile = (field, index) => {
+    const targetField = field === 'extra' ? 'imageUrlsText' : 
+                       field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
+    
+    const currentUrls = (value || '').split(',').map(u => u.trim()).filter(u => u);
+    currentUrls.splice(index, 1);
+    
+    setForm(prev => ({
+      ...prev,
+      [targetField]: currentUrls.join(', ')
+    }));
+  };
+
+  return (
+    <div className="space-y-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+      <div className="flex justify-between items-center">
+        <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
+          {IconEl ? <IconEl size={18} className={colorClass}/> : null} {title}
+        </label>
+      </div>
+
+      {/* Vùng kéo thả */}
+      <div 
+        className={`border-2 border-dashed rounded-xl p-6 h-40 flex flex-col items-center justify-center transition cursor-pointer hover:bg-gray-50 ${
+          uploading[field] ? 'border-gray-300 bg-gray-50' : 'border-indigo-100'
+        }`}
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const files = e.dataTransfer.files;
+          if (files.length > 0) {
+            handleFileUpload({ target: { files } }, field);
+          }
+        }}
+        onClick={() => document.getElementById(inputId).click()}
+      >
+        <input 
+          id={inputId}
+          type="file" 
+          className="hidden" 
+          accept={field === 'docs' ? "image/*,application/pdf" : "image/*"} 
+          multiple={field !== 'main'} 
+          onChange={(e) => handleFileUpload(e, field)} 
+        />
+        {uploading[field] ? (
+          <Loader2 size={24} className="animate-spin text-indigo-500 mb-2" />
+        ) : (
+          <Upload size={24} className="text-indigo-500 mb-2" />
+        )}
+        <span className="text-xs text-gray-500 font-medium text-center">
+          {uploading[field] ? "Đang tải lên..." : "Chọn hoặc kéo thả ảnh"}
+        </span>
+      </div>
+
+      {/* Nhập link trực tiếp */}
+      <div className="flex gap-2">
+        <input 
+          type="url"
+          placeholder="https://..."
+          className="flex-1 px-3 py-2 border rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50/50"
+          value={localLink}
+          onChange={(e) => setLocalLink(e.target.value)}
+        />
+        <button 
+          type="button"
+          onClick={() => {
+            if (localLink.trim()) {
+              if (field === 'main') {
+                setForm(prev => ({ ...prev, imageUrl: localLink.trim() }));
+              } else {
+                const targetField = field === 'extra' ? 'imageUrlsText' : 
+                                   field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
+                setForm(prev => ({ 
+                  ...prev, 
+                  [targetField]: prev[targetField] ? `${prev[targetField]}, ${localLink.trim()}` : localLink.trim() 
+                }));
+              }
+              setLocalLink('');
+            }
+          }}
+          className="px-4 py-2 bg-gray-900 text-white rounded-lg text-xs font-bold hover:bg-black transition shadow-sm"
+        >
+          Thêm
+        </button>
+      </div>
+
+      {/* Danh sách file (chỉ cho các field multiple) */}
+      {field !== 'main' && urls.length > 0 && (
+        <div className="space-y-1.5 pt-2 border-t border-gray-50">
+          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">DANH SÁCH FILE ĐÃ THÊM</p>
+          <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+            {urls.map((url, i) => (
+              <div key={i} className="flex items-center justify-between gap-2 p-1.5 bg-gray-50 rounded-lg group">
+                <div className="flex items-center gap-2 truncate">
+                  <FileText size={12} className="text-gray-400" />
+                  <a href={url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 underline truncate hover:text-blue-700">
+                    {url.split('/').pop().substring(0, 20)}...
+                  </a>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => removeFile(field, i)}
+                  className="p-1 hover:bg-red-50 rounded text-red-400 opacity-0 group-hover:opacity-100 transition"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
@@ -20,14 +141,97 @@ const ProductList = () => {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState({ main: false, extra: false, docs: false, qrs: false });
+
+  // Hàm xử lý upload file lên Supabase Storage (Hỗ trợ nhiều file)
+  const handleFileUpload = async (event, field) => {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+
+    // Kiểm tra định dạng và dung lượng cho từng file
+    const isDoc = field === 'docs';
+    const allowedTypes = isDoc 
+      ? ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+      : ['image/jpeg', 'image/png', 'image/webp'];
+    
+    const validFiles = files.filter(file => {
+      if (!allowedTypes.includes(file.type)) {
+        alert(`❌ File "${file.name}" không đúng định dạng.`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`❌ File "${file.name}" quá lớn (>5MB).`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setUploading(prev => ({ ...prev, [field]: true }));
+    try {
+      const uploadPromises = validFiles.map(async (file) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `products/${fileName}`;
+
+        const { error } = await supabase.storage
+          .from('meditrack')
+          .upload(filePath, file);
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('meditrack')
+          .getPublicUrl(filePath);
+        
+        return publicUrl;
+      });
+
+      const publicUrls = await Promise.all(uploadPromises);
+
+      // Cập nhật vào form tương ứng
+      if (field === 'main') {
+        // Ảnh chính chỉ lấy cái đầu tiên nếu chọn nhiều
+        setForm(prev => ({ ...prev, imageUrl: publicUrls[0] }));
+      } else {
+        const joinedUrls = publicUrls.join(', ');
+        const targetField = field === 'extra' ? 'imageUrlsText' : 
+                           field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
+        
+        setForm(prev => ({ 
+          ...prev, 
+          [targetField]: prev[targetField] ? `${prev[targetField]}, ${joinedUrls}` : joinedUrls 
+        }));
+      }
+
+      alert(`✅ Đã tải ${publicUrls.length} file lên thành công!`);
+    } catch (error) {
+      console.error("Lỗi upload:", error);
+      alert("Lỗi upload: " + (error.message || "Không rõ lỗi"));
+    } finally {
+      setUploading(prev => ({ ...prev, [field]: false }));
+      event.target.value = '';
+    }
+  };
 
   const load = async () => {
     setLoading(true);
-    const snap = await getDocs(collection(db, 'products'));
-    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    setProducts(list);
-    setFilteredProducts(list);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setProducts(data || []);
+      setFilteredProducts(data || []);
+    } catch (error) {
+      console.error("Lỗi tải danh sách sản phẩm:", error);
+      alert("Lỗi: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -36,7 +240,7 @@ const ProductList = () => {
   useEffect(() => {
     const filtered = products.filter(p => 
       p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.dosageForm?.toLowerCase().includes(searchTerm.toLowerCase())
+      p.dosage_form?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredProducts(filtered);
   }, [searchTerm, products]);
@@ -62,10 +266,27 @@ const ProductList = () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Danh sách sản phẩm');
 
+    // Hàm tải logo (trong thư mục public) và chuyển sang base64
+    const loadImageAsBase64 = async (url) => {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Không tìm thấy ảnh ở đường dẫn: ${url}`);
+  
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      // BẮT BUỘC: Cắt bỏ phần "data:image/jpeg;base64," ở đầu chuỗi
+      const base64data = reader.result.split(',')[1]; 
+      resolve(base64data);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
     // Hàm format gạch đầu dòng cho các nội dung nhiều dòng
     const formatBulletPoints = (text) => {
       if (!text) return '-';
-      // Nếu text đã có xuống dòng hoặc dài, ta sẽ chuẩn hóa thành gạch đầu dòng
       const lines = text.split('\n').filter(line => line.trim() !== '');
       if (lines.length > 1) {
         return lines.map(line => `• ${line.trim()}`).join('\n');
@@ -73,26 +294,132 @@ const ProductList = () => {
       return text;
     };
 
-    // 1. Tiêu đề chính
-    const titleRow = worksheet.addRow(['QUẢN LÝ SẢN PHẨM']);
-    titleRow.font = { name: 'Arial', family: 4, size: 16, bold: true };
-    titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
-    worksheet.mergeCells('A1:L1'); // Mở rộng merge đến cột L
-    worksheet.getRow(1).height = 35;
+    // (Không cần helper chuyển chỉ số cột -> chữ cái vì vùng merge đã cố định)
 
-    // 2. Ngày tháng xuất
-    const now = new Date();
-    const dateStr = `Ngày xuất: ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()} ${now.getHours()}:${now.getMinutes()}`;
-    const dateRow = worksheet.addRow([dateStr]);
-    dateRow.font = { italic: true };
-    dateRow.alignment = { horizontal: 'right' };
-    worksheet.mergeCells(`A2:L2`);
+    // 1. Logo + Tên công ty + Tiêu đề báo cáo
+    let imageId = null;
+const candidateLogos = [
+  '/470184049_1205395344807955_5193115280954680355_n.png',
+  '/logo_thaiminh.jpg',
+  '/logo_thaiminh.jpeg',
+  '/logo.png'
+];
 
-    worksheet.addRow([]); // Dòng trống
+for (const path of candidateLogos) {
+  try {
+    console.log('Đang thử load logo từ:', path);
+    const base64 = await loadImageAsBase64(path);
+    
+    imageId = workbook.addImage({ 
+      base64: base64, 
+      extension: path.endsWith('.png') ? 'png' : 'jpeg' 
+    });
+    
+    console.log('✅ Load logo thành công tại:', path);
+    break; // Thoát vòng lặp khi đã tìm thấy ảnh
+  } catch (error) { 
+    console.log(`❌ Lỗi load ảnh ${path}:`, error.message);
+  }
+}
+
+    // Nếu vẫn không có file logo, tạo logo fallback bằng Canvas (màu xanh/da cam + chữ TM)
+    if (imageId === null) {
+      const generateFallbackLogoBase64 = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 300;
+        canvas.height = 200;
+        const ctx = canvas.getContext('2d');
+        // Nền trắng
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Hình biểu tượng (2 nửa xanh/da cam)
+        ctx.save();
+        ctx.translate(150, 90);
+        ctx.rotate(-0.1);
+        ctx.beginPath();
+        ctx.moveTo(0, -40);
+        ctx.bezierCurveTo(60, -90, 120, -10, 0, 70);
+        ctx.bezierCurveTo(-120, -10, -60, -90, 0, -40);
+        ctx.closePath();
+        ctx.clip();
+        // Chia đôi và tô màu
+        ctx.fillStyle = '#1D4ED8'; // xanh
+        ctx.fillRect(-150, -150, 300, 150);
+        ctx.fillStyle = '#F59E0B'; // da cam
+        ctx.fillRect(-150, 0, 300, 150);
+        ctx.restore();
+        // Dấu cộng trắng
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 18;
+        ctx.beginPath();
+        ctx.moveTo(150, 35); ctx.lineTo(150, 145);
+        ctx.moveTo(90, 90); ctx.lineTo(210, 90);
+        ctx.stroke();
+        // Chữ TM nhỏ dưới biểu tượng
+        ctx.fillStyle = '#1E3A8A';
+        ctx.font = 'bold 28px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Thái Minh', 150, 185);
+        return canvas.toDataURL('image/png').split(',')[1];
+      };
+      try {
+        const base64 = generateFallbackLogoBase64();
+        imageId = workbook.addImage({ base64, extension: 'png' });
+      } catch { /* ignore */ }
+    }
+
+    // Hàng 1: Logo (A1:B1) và Tên công ty căn giữa C1:E1
+    worksheet.getCell('C1').value = 'CÔNG TY CỔ PHẦN DƯỢC PHẨM THÁI MINH';
+worksheet.mergeCells('C1:E1');
+worksheet.getCell('C1').font = { name: 'Arial', size: 13.5, bold: true, color: { argb: '1E3A8A' } };
+worksheet.getCell('C1').alignment = { vertical: 'middle', horizontal: 'center' };
+worksheet.getRow(1).height = 64;
+
+// Chèn logo nếu có (A1:B1)
+if (imageId !== null) {
+  try {
+    // Dùng neo 2-cell để tránh xung đột merge/row-height
+    worksheet.addImage(imageId, {
+      tl: { col: 0, row: 0 },   // A1
+      br: { col: 2, row: 1 }    // B1 (col is exclusive upper bound -> 2 = cột B)
+    });
+  } catch { /* ignore */ }
+}
+
+// 2. Tiêu đề báo cáo (A2:M4)
+worksheet.getCell('A2').value = 'BÁO CÁO SẢN PHẨM';
+worksheet.mergeCells('A2:M4');
+worksheet.getCell('A2').font = { name: 'Arial', size: 18, bold: true };
+worksheet.getCell('A2').alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+
+// Khai báo chiều cao cho các dòng bị merge để khung hiển thị đủ lớn
+worksheet.getRow(2).height = 30;
+worksheet.getRow(3).height = 30;
+worksheet.getRow(4).height = 30;
+
+// 3. Ngày xuất (M5:M6)
+const now = new Date();
+const dd = String(now.getDate()).padStart(2, '0');
+const mm = String(now.getMonth() + 1).padStart(2, '0');
+const yyyy = now.getFullYear();
+const HH = String(now.getHours()).padStart(2, '0');
+const MM = String(now.getMinutes()).padStart(2, '0');
+const dateStr = `Ngày xuất: ${dd}/${mm}/${yyyy} ${HH}:${MM}`;
+
+worksheet.getCell('M5').value = dateStr;
+worksheet.mergeCells('M5:M6');
+worksheet.getCell('M5').font = { italic: true };
+worksheet.getCell('M5').alignment = { horizontal: 'center', vertical: 'middle' };
+
+// Căn chỉnh chiều cao cho vùng Ngày xuất
+worksheet.getRow(5).height = 22;
+worksheet.getRow(6).height = 22;
+
+    // Hàng 7 sẽ là header bảng
 
     // 3. Header bảng
     const headers = [
-      'STT', 'Tên sản phẩm', 'Giá niêm yết', 'Dạng bào chế', 'HSD (tháng)', 
+      'STT', 'Ảnh', 'Tên sản phẩm', 'Giá niêm yết', 'Dạng bào chế', 'HSD (tháng)', 
       'Thành phần', 'Công dụng', 'Cách dùng', 'Tác dụng phụ', 'Lưu ý', 'Bảo quản', 'Mô tả'
     ];
     const headerRow = worksheet.addRow(headers);
@@ -113,19 +440,58 @@ const ProductList = () => {
     });
     headerRow.height = 25;
 
+    // (Không cần merge động nữa vì đã cố định theo yêu cầu)
+
     // 4. Đổ dữ liệu
-    dataToExport.forEach((p, index) => {
+    // Hàm lấy ảnh sản phẩm về Base64
+    const fetchImageAsBase64 = async (url) => {
+      if (!url) return null;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const blob = await res.blob();
+        // Chuyển về PNG nếu là WEBP/khác
+        const mime = blob.type || '';
+        if (mime === 'image/png' || mime === 'image/jpeg') {
+          return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64 = (reader.result || '').toString().split(',')[1] || '';
+              resolve({ base64, ext: mime === 'image/png' ? 'png' : 'jpeg' });
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
+        // Convert sang PNG qua canvas
+        const bmp = await createImageBitmap(blob);
+        const canvas = document.createElement('canvas');
+        canvas.width = bmp.width;
+        canvas.height = bmp.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bmp, 0, 0);
+        const dataUrl = canvas.toDataURL('image/png');
+        const base64 = dataUrl.split(',')[1] || '';
+        return { base64, ext: 'png' };
+      } catch {
+        return null;
+      }
+    };
+
+    for (let i = 0; i < dataToExport.length; i++) {
+      const p = dataToExport[i];
       const rowData = [
-        index + 1,
+        i + 1,
+        '', // cột ảnh (sẽ chèn sau)
         p.name,
         p.price ? `${p.price.toLocaleString()} ₫` : '0 ₫',
-        p.dosageForm || '-',
-        p.expiryMonths || '-',
+        p.dosage_form || '-',
+        p.expiry_months || '-',
         formatBulletPoints(p.ingredients),
-        formatBulletPoints(p.uses),         // Sửa: uses thay vì usage
-        formatBulletPoints(p.directions),   // Sửa: directions thay vì howToUse
-        formatBulletPoints(p.sideEffects),
-        formatBulletPoints(p.precautions), // Sửa: precautions thay vì notes
+        formatBulletPoints(p.uses),
+        formatBulletPoints(p.directions),
+        formatBulletPoints(p.side_effects),
+        formatBulletPoints(p.precautions),
         formatBulletPoints(p.storage),
         formatBulletPoints(p.description)
       ];
@@ -140,43 +506,63 @@ const ProductList = () => {
           right: { style: 'thin' }
         };
         
-        // Căn lề
-        if ([1, 2, 3, 4, 5].includes(colNumber)) { // Thêm cột 2 (Tên sản phẩm) vào danh sách căn giữa
+        if ([1, 2, 4, 5, 6].includes(colNumber)) {
           cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
         } else {
           cell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
         }
       });
-    });
+      
+      // Chèn ảnh vào cột B cho hàng hiện tại
+      const imgUrl = p.image_url || (Array.isArray(p.image_urls) && p.image_urls[0]) || '';
+      const imgData = await fetchImageAsBase64(imgUrl);
+      if (imgData && imgData.base64) {
+        try {
+          const imgId = workbook.addImage({ base64: imgData.base64, extension: imgData.ext || 'png' });
+          // Tăng chiều cao hàng để chứa ảnh
+          const rowNumber = row.number;
+          worksheet.getRow(rowNumber).height = 110;
+          // Chèn ảnh theo toạ độ tuyệt đối bám theo ô B{row}
+          // col/row là 0-based
+          worksheet.addImage(imgId, {
+            tl: { col: 1, row: rowNumber - 1 },
+            ext: { width: 120, height: 100 },
+            editAs: 'oneCell'
+          });
+        } catch { /* ignore */ }
+      }
+    }
 
     // 5. Độ rộng cột
-    const colWidths = [8, 30, 15, 18, 12, 25, 25, 25, 25, 25, 20, 30];
+    const colWidths = [8, 18, 22, 18, 16, 12, 24, 24, 24, 24, 24, 18, 28];
     colWidths.forEach((width, i) => {
       worksheet.getColumn(i + 1).width = width;
     });
 
     // Xuất file
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `Quan_ly_san_pham_${Date.now()}.xlsx`);
+    const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    saveAs(new Blob([buffer], { type: mime }), `Quan_ly_san_pham_${Date.now()}.xlsx`);
   };
 
   const startEdit = (p) => {
     setEditing(p.id);
     setForm({
       name: p.name || '',
-      price: p.price || '',
+      price: p.price ?? '',
       description: p.description || '',
-      imageUrl: p.imageUrl || '',
-      imageUrlsText: Array.isArray(p.imageUrls) ? p.imageUrls.join(', ') : '',
-      dosageForm: p.dosageForm || '',
-      expiryMonths: p.expiryMonths ?? '',
+      imageUrl: p.image_url || '',
+      imageUrlsText: Array.isArray(p.image_urls) ? p.image_urls.join(', ') : '',
+      dosage_form: p.dosage_form || '',
+      expiry_months: p.expiry_months ?? '',
       ingredients: p.ingredients || '',
       uses: p.uses || '',
       directions: p.directions || '',
-      sideEffects: p.sideEffects || '',
+      side_effects: p.side_effects || '',
       storage: p.storage || '',
       precautions: p.precautions || '',
-      relatedDocsText: Array.isArray(p.relatedDocs) ? p.relatedDocs.join(', ') : ''
+      relatedDocsText: Array.isArray(p.related_docs) ? p.related_docs.join(', ') : '',
+      relatedQRsText: Array.isArray(p.related_qrs) ? p.related_qrs.join(', ') : ''
     });
   };
 
@@ -188,23 +574,67 @@ const ProductList = () => {
   const save = async () => {
     setSaving(true);
     try {
-      const extraUrls = (form.imageUrlsText || '').split(',').map(u => u.trim()).filter(Boolean);
-      const relatedDocUrls = (form.relatedDocsText || '').split(',').map(u => u.trim()).filter(Boolean);
+      if (!form.name || !form.name.trim()) {
+        alert('Vui lòng nhập tên sản phẩm');
+        setSaving(false);
+        return;
+      }
+      if (form.price === '' || Number(form.price) <= 0 || Number.isNaN(Number(form.price))) {
+        alert('Giá bán phải là số > 0');
+        setSaving(false);
+        return;
+      }
+      if (!form.description || !form.description.trim()) {
+        alert('Vui lòng nhập mô tả');
+        setSaving(false);
+        return;
+      }
+      const extraUrls = (form.imageUrlsText || '')
+        .split(',')
+        .map(u => u.trim())
+        .filter(u => u);
       
-      await updateDoc(doc(db, 'products', editing), {
-        ...form,
-        imageUrls: extraUrls,
-        relatedDocs: relatedDocUrls,
-        imageUrl: form.imageUrl || extraUrls[0] || '',
-        price: Number(form.price),
-        expiryMonths: form.expiryMonths ? Number(form.expiryMonths) : null,
-        updatedAt: new Date().toISOString()
-      });
+      const relatedDocUrls = (form.relatedDocsText || '')
+        .split(',')
+        .map(u => u.trim())
+        .filter(u => u);
+
+      const relatedQrUrls = (form.relatedQRsText || '')
+        .split(',')
+        .map(u => u.trim())
+        .filter(u => u);
+      
+      const { error } = await supabase
+        .from('products')
+        .update({
+          name: form.name,
+          description: form.description,
+          dosage_form: form.dosage_form,
+          expiry_months: form.expiry_months ? Number(form.expiry_months) : null,
+          ingredients: form.ingredients,
+          uses: form.uses,
+          directions: form.directions,
+          side_effects: form.side_effects,
+          storage: form.storage,
+          precautions: form.precautions,
+          image_urls: extraUrls,
+          related_docs: relatedDocUrls,
+          related_qrs: relatedQrUrls,
+          image_url: form.imageUrl || extraUrls[0] || 'https://placehold.co/400',
+          price: form.price !== '' ? Number(form.price) : null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editing);
+
+      if (error) throw error;
+
+      alert('✅ Đã cập nhật sản phẩm thành công!');
+      
       await load();
       cancel();
-      alert('✅ Đã cập nhật sản phẩm');
-    } catch (e) {
-      alert('Lỗi: ' + e.message);
+    } catch (error) {
+      console.error("Lỗi cập nhật sản phẩm:", error);
+      alert('❌ Lỗi hệ thống: ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -230,7 +660,6 @@ const ProductList = () => {
         </div>
       </div>
 
-      {/* Thanh bộ lọc */}
       <div className="bg-white p-4 rounded-xl border shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -302,16 +731,30 @@ const ProductList = () => {
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-900">{p.name}</td>
                     <td className="px-4 py-3 text-indigo-600 font-bold">{p.price?.toLocaleString()} ₫</td>
-                    <td className="px-4 py-3 text-gray-600">{p.dosageForm || '-'}</td>
+                    <td className="px-4 py-3 text-gray-600">{p.dosage_form || '-'}</td>
                     <td className="px-4 py-3">
                       <span className="bg-gray-100 px-2 py-1 rounded text-xs text-gray-600 font-medium">
-                        {p.expiryMonths ? p.expiryMonths + ' tháng' : '-'}
+                        {p.expiry_months ? p.expiry_months + ' tháng' : '-'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => startEdit(p)} className="inline-flex items-center gap-1 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-primary hover:bg-primary hover:text-white transition shadow-sm">
-                        <Edit3 size={14}/> Sửa
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => startEdit(p)} className="inline-flex items-center gap-1 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-primary hover:bg-primary hover:text-white transition shadow-sm">
+                          <Edit3 size={14}/> Sửa
+                        </button>
+                        <button 
+                          onClick={async () => {
+                            if (window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
+                              const { error } = await supabase.from('products').delete().eq('id', p.id);
+                              if (error) alert('Lỗi khi xóa: ' + error.message);
+                              else load();
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 bg-white border border-red-200 px-3 py-1.5 rounded-lg text-red-600 hover:bg-red-600 hover:text-white transition shadow-sm"
+                        >
+                          <X size={14}/> Xóa
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -326,11 +769,10 @@ const ProductList = () => {
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
           onClick={cancel}
         >
-          <div 
-            className="bg-white w-full md:max-w-6xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl border p-0"
+            <div 
+            className="bg-white w-full md:max-w-[90rem] max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl border p-0"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="flex items-center gap-3 p-6 border-b sticky top-0 bg-white z-10">
               <div className="p-3 bg-indigo-100 rounded-full text-primary">
                 <Edit3 size={24} />
@@ -349,16 +791,15 @@ const ProductList = () => {
             </div>
 
             <div className="p-8">
-              <div className="grid lg:grid-cols-3 gap-10">
-                {/* Cột trái & giữa */}
-                <div className="lg:col-span-2 space-y-6">
+              <div className="grid lg:grid-cols-[2fr_1fr] gap-10">
+                <div className="space-y-6">
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                         <Package size={18} className="text-indigo-500"/> Tên thuốc / Sản phẩm
                       </label>
                       <input
-                        className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                        className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
                         placeholder="VD: Panadol Extra"
                         value={form.name}
                         onChange={e=>setForm({...form, name:e.target.value})}
@@ -370,7 +811,7 @@ const ProductList = () => {
                       </label>
                       <input
                         type="number"
-                        className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                        className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
                         placeholder="VD: 50000"
                         value={form.price}
                         onChange={e=>setForm({...form, price:e.target.value})}
@@ -384,10 +825,10 @@ const ProductList = () => {
                         <Pill size={18} className="text-blue-500"/> Dạng bào chế
                       </label>
                       <input
-                        className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                        className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
                         placeholder="VD: Viên nén bao phim"
-                        value={form.dosageForm}
-                        onChange={e=>setForm({...form, dosageForm:e.target.value})}
+                        value={form.dosage_form}
+                        onChange={e=>setForm({...form, dosage_form:e.target.value})}
                       />
                     </div>
                     <div>
@@ -396,10 +837,10 @@ const ProductList = () => {
                       </label>
                       <input
                         type="number"
-                        className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                        className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
                         placeholder="VD: 36"
-                        value={form.expiryMonths}
-                        onChange={e=>setForm({...form, expiryMonths:e.target.value})}
+                        value={form.expiry_months}
+                        onChange={e=>setForm({...form, expiry_months:e.target.value})}
                       />
                     </div>
                   </div>
@@ -410,7 +851,7 @@ const ProductList = () => {
                     </label>
                     <textarea
                       rows="3"
-                      className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                      className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30 min-h-36"
                       placeholder="VD: Giảm đau, hạ sốt nhanh chóng..."
                       value={form.description}
                       onChange={e=>setForm({...form, description:e.target.value})}
@@ -423,7 +864,7 @@ const ProductList = () => {
                     </label>
                     <textarea
                       rows="3"
-                      className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                      className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30 min-h-36"
                       placeholder="Mỗi viên chứa..."
                       value={form.ingredients}
                       onChange={e=>setForm({...form, ingredients:e.target.value})}
@@ -437,7 +878,7 @@ const ProductList = () => {
                       </label>
                       <textarea
                         rows="3"
-                        className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                        className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30 min-h-36"
                         placeholder="Chỉ định, điều trị..."
                         value={form.uses}
                         onChange={e=>setForm({...form, uses:e.target.value})}
@@ -449,7 +890,7 @@ const ProductList = () => {
                       </label>
                       <textarea
                         rows="3"
-                        className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                        className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30 min-h-36"
                         placeholder="Liều dùng, thời điểm..."
                         value={form.directions}
                         onChange={e=>setForm({...form, directions:e.target.value})}
@@ -464,10 +905,10 @@ const ProductList = () => {
                       </label>
                       <textarea
                         rows="3"
-                        className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                      className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30 min-h-36"
                         placeholder="Buồn ngủ, chóng mặt..."
-                        value={form.sideEffects}
-                        onChange={e=>setForm({...form, sideEffects:e.target.value})}
+                        value={form.side_effects}
+                        onChange={e=>setForm({...form, side_effects:e.target.value})}
                       />
                     </div>
                     <div>
@@ -476,7 +917,7 @@ const ProductList = () => {
                       </label>
                       <textarea
                         rows="3"
-                        className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                      className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30 min-h-36"
                         placeholder="Nhiệt độ, tránh ẩm..."
                         value={form.storage}
                         onChange={e=>setForm({...form, storage:e.target.value})}
@@ -490,7 +931,7 @@ const ProductList = () => {
                     </label>
                     <textarea
                       rows="3"
-                      className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                      className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30 min-h-40"
                       placeholder="Chống chỉ định, thận trọng..."
                       value={form.precautions}
                       onChange={e=>setForm({...form, precautions:e.target.value})}
@@ -498,63 +939,51 @@ const ProductList = () => {
                   </div>
                 </div>
 
-                {/* Cột phải */}
                 <div className="space-y-6">
-                  <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 space-y-6">
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                        <ImageIcon size={18} className="text-indigo-500"/> Link Ảnh chính (URL)
-                      </label>
-                      <input
-                        className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-white"
-                        placeholder="https://..."
-                        value={form.imageUrl || ''}
-                        onChange={e=>setForm({...form, imageUrl:e.target.value})}
-                      />
-                    </div>
-                    <div className="border-2 border-dashed border-gray-300 rounded-2xl h-56 flex items-center justify-center overflow-hidden bg-white relative group">
-                      {form.imageUrl ? (
-                        <img src={form.imageUrl} alt="Preview" className="w-full h-full object-contain p-2" />
-                      ) : (
-                        <div className="text-center">
-                          <ImageIcon size={40} className="mx-auto text-gray-300 mb-2" />
-                          <span className="text-gray-400 text-xs font-medium">Xem trước hình ảnh</span>
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                        <Images size={18} className="text-indigo-500"/> Ảnh bổ sung (phân tách bằng dấu phẩy)
-                      </label>
-                      <textarea
-                        rows="3"
-                        className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-white text-sm"
-                        placeholder="https://..., https://..."
-                        value={form.imageUrlsText || ''}
-                        onChange={e=>setForm({...form, imageUrlsText: e.target.value})}
-                      />
-                      <div className="mt-3 grid grid-cols-3 gap-2">
-                        {(form.imageUrlsText || '').split(',').map(u => u.trim()).filter(Boolean).slice(0, 6).map((u, i) => (
-                          <div key={i} className="w-full h-16 border rounded-lg overflow-hidden bg-white">
-                            <img src={u} className="w-full h-full object-cover" alt={`extra-${i}`} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                  <UploadSection 
+                    title="Ảnh chính sản phẩm"
+                    field="main"
+                    value={form.imageUrl}
+                    icon={ImageIcon}
+                    colorClass="text-indigo-500"
+                    uploading={uploading}
+                    handleFileUpload={handleFileUpload}
+                    setForm={setForm}
+                  />
 
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                        <FileSearch size={18} className="text-indigo-500"/> Giấy tờ liên quan (link ảnh)
-                      </label>
-                      <textarea
-                        rows="3"
-                        className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-white text-sm"
-                        placeholder="https://..., https://..."
-                        value={form.relatedDocsText || ''}
-                        onChange={e=>setForm({...form, relatedDocsText: e.target.value})}
-                      />
-                    </div>
+                  {/* Preview Ảnh chính */}
+                  <div className="bg-white border border-gray-100 rounded-2xl h-64 flex items-center justify-center overflow-hidden shadow-sm relative group">
+                    {form.imageUrl ? (
+                      <img src={form.imageUrl} alt="Preview" className="w-full h-full object-contain p-2" />
+                    ) : (
+                      <div className="text-center">
+                        <ImageIcon size="40" className="mx-auto text-gray-200 mb-2" />
+                        <span className="text-gray-400 text-xs font-medium">Xem trước hình ảnh</span>
+                      </div>
+                    )}
                   </div>
+
+                  <UploadSection 
+                    title="Giấy tờ liên quan"
+                    field="docs"
+                    value={form.relatedDocsText}
+                    icon={FileSearch}
+                    colorClass="text-indigo-500"
+                    uploading={uploading}
+                    handleFileUpload={handleFileUpload}
+                    setForm={setForm}
+                  />
+
+                  <UploadSection 
+                    title="QR liên quan"
+                    field="qrs"
+                    value={form.relatedQRsText}
+                    icon={QrCode}
+                    colorClass="text-indigo-500"
+                    uploading={uploading}
+                    handleFileUpload={handleFileUpload}
+                    setForm={setForm}
+                  />
                 </div>
               </div>
             </div>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { db } from '../../services/firebase';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { supabase } from '../../services/supabase';
 import { Package, Calendar, ChevronDown, ChevronUp, ExternalLink, Clock, CheckCircle, Truck, CreditCard, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -17,18 +16,14 @@ const OrderHistory = () => {
       
       try {
         // Lấy đơn hàng của user hiện tại, sắp xếp mới nhất lên đầu
-        const q = query(
-          collection(db, "orders"),
-          where("userId", "==", user.uid),
-          orderBy("createdAt", "desc")
-        );
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
         
-        const querySnapshot = await getDocs(q);
-        const orderList = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setOrders(orderList);
+        if (error) throw error;
+        setOrders(data || []);
       } catch (error) {
         console.error("Lỗi tải đơn hàng:", error);
       } finally {
@@ -40,9 +35,9 @@ const OrderHistory = () => {
   }, [user]);
 
   // Helper: Format ngày
-  const formatDate = (timestamp) => {
-    if (!timestamp) return '';
-    return new Date(timestamp.seconds * 1000).toLocaleString('vi-VN');
+  const formatDate = (isoString) => {
+    if (!isoString) return '';
+    return new Date(isoString).toLocaleString('vi-VN');
   };
 
   // Helper: Màu trạng thái
@@ -101,12 +96,12 @@ const OrderHistory = () => {
                     </div>
                     <div className="flex items-center gap-3 mt-1">
                       <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Calendar size={12}/> {formatDate(order.createdAt)}
+                        <Calendar size={12}/> {formatDate(order.created_at)}
                       </p>
                       <span className="text-xs text-gray-400 border-l pl-3 flex items-center gap-1">
-                        {order.paymentMethod === 'online' ? (
+                        {order.payment_method === 'online' ? (
                           <><CreditCard size={12}/> Thẻ Online</>
-                        ) : order.paymentMethod === 'direct' ? (
+                        ) : order.payment_method === 'direct' ? (
                           <><Wallet size={12}/> Tiền mặt</>
                         ) : (
                           <><Wallet size={12}/> Chưa rõ PT</>
@@ -119,7 +114,7 @@ const OrderHistory = () => {
                 <div className="flex items-center gap-6 mt-3 md:mt-0">
                   <div className="text-right">
                     <p className="text-sm text-gray-500">Tổng tiền</p>
-                    <p className="font-bold text-primary">{order.totalAmount?.toLocaleString()} ₫</p>
+                    <p className="font-bold text-primary">{order.total_amount?.toLocaleString()} ₫</p>
                   </div>
                   {expandedOrder === order.id ? <ChevronUp className="text-gray-400"/> : <ChevronDown className="text-gray-400"/>}
                 </div>
@@ -132,7 +127,7 @@ const OrderHistory = () => {
                   
                   <div className="space-y-3">
                     {/* Duyệt qua từng sản phẩm được hệ thống FIFO tách ra */}
-                    {order.batchDetails?.map((item, idx) => (
+                    {order.batch_details?.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-indigo-100 bg-indigo-50/50">
                         <div>
                           <p className="font-bold text-gray-800">{item.productName}</p>
@@ -157,7 +152,7 @@ const OrderHistory = () => {
                     ))}
                   </div>
 
-                  {(!order.batchDetails || order.batchDetails.length === 0) && (
+                  {(!order.batch_details || order.batch_details.length === 0) && (
                      <p className="text-sm text-gray-400 italic">Đơn hàng cũ, không có thông tin lô.</p>
                   )}
                 </div>

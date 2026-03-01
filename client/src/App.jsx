@@ -52,16 +52,17 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 function App() {
   const { connectWallet, currentAccount, disconnectWallet } = useContext(Web3Context); // Vẫn giữ Web3 để dùng khi cần
-  const { user, logout } = useAuth(); // Lấy thông tin user từ Firebase
+  const { user, role, logout } = useAuth(); // Lấy thông tin user từ Supabase
   const { totalItems } = useCart();
   const navigate = useNavigate();
+  const ADMIN_EMAIL = 'nguyenhieu@gmail.com';
 
   const handleLogout = async () => {
     try {
       // Ngắt ví trước (Xóa state Web3)
       disconnectWallet(); 
       
-      // Sau đó đăng xuất Firebase (Xóa state Web2)
+      // Sau đó đăng xuất Supabase (Xóa state Web2)
       await logout();
       
       // Chuyển hướng
@@ -74,7 +75,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
       
-      {/* HEADER WEB2 (Firebase Auth) */}
+      {/* HEADER WEB2 (Supabase Auth) */}
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
@@ -88,7 +89,7 @@ function App() {
             <Link to="/tracking" className="text-gray-500 hover:text-gray-900 font-normal">Tra cứu</Link>
             <Link to="/orders" className="text-gray-500 hover:text-gray-900 font-normal">Đơn hàng</Link>
             {/* Chỉ hiện menu Admin nếu role là admin */}
-            {user && user.role === "admin" && (
+            {user && role === "admin" && (
               <>
                 <Link to="/admin/dashboard" className="text-gray-500 hover:text-gray-900 font-normal">Sản xuất</Link>
                 <Link to="/admin/inventory" className="text-gray-500 hover:text-gray-900 font-normal">Kho hàng</Link>
@@ -110,7 +111,7 @@ function App() {
             {/* Nút Connect Wallet (Web3) - Để riêng một góc nhỏ */}
             {currentAccount ? (
                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-mono border border-green-200">
-                 Waitlet: {currentAccount.slice(0,4)}...{currentAccount.slice(-4)}
+                 Wallet: {currentAccount.slice(0,4)}...{currentAccount.slice(-4)}
                </span>
             ) : (user ?
                <button onClick={connectWallet} className="text-xs text-primary hover:underline">
@@ -122,8 +123,15 @@ function App() {
             {user ? (
               <div className="flex items-center gap-3 pl-4 border-l">
                 <div className="text-right hidden sm:block">
-                  <p className="text-sm font-bold text-gray-800">{user.fullName || user.email}</p>
-                  <p className="text-xs text-gray-500 uppercase">{user.role || 'User'}</p>
+                  <p className="text-sm font-bold text-gray-800">{user.full_name || user.email}</p>
+                  <p className="text-xs text-gray-500 uppercase flex items-center gap-2 justify-end">
+                    <span>{role || 'User'}</span>
+                    {user.email === ADMIN_EMAIL && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                        Admin on-chain
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <button 
                   onClick={handleLogout}

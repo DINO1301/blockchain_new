@@ -45,6 +45,11 @@ const QualityControl = () => {
     // 2. Xác nhận Đạt chuẩn (Ghi vào Blockchain)
     const handleVerify = async () => {
         if (!contract) return;
+        
+        if (!currentAccount) {
+            return alert("⚠️ Vui lòng kết nối ví MetaMask để thực hiện giao dịch này!");
+        }
+
         setVerifying(true);
         try {
             // Gọi hàm verifyQuality(id, true) trong Smart Contract
