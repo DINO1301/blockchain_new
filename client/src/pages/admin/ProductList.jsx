@@ -4,11 +4,12 @@ import {
   Edit3, Save, Loader2, Plus, X, Pill, Clock, FileText, ShieldAlert, Archive, 
   Image as ImageIcon, Download, Search, CheckSquare, Square, 
   Package, CircleDollarSign, Calendar, Info, FlaskConical, Stethoscope, Activity, 
-  AlertTriangle, Thermometer, FileSearch, QrCode, Upload 
+  AlertTriangle, Thermometer, FileSearch, QrCode, Upload, Filter 
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { PRODUCT_CATEGORIES } from '../../utils/categories';
 
 const UploadSection = ({ title, field, value, icon: IconEl, colorClass, uploading, handleFileUpload, setForm }) => {
   const [localLink, setLocalLink] = useState('');
@@ -17,7 +18,8 @@ const UploadSection = ({ title, field, value, icon: IconEl, colorClass, uploadin
 
   // Hàm xóa ảnh/file khỏi danh sách
   const removeFile = (field, index) => {
-    const targetField = field === 'extra' ? 'imageUrlsText' : 
+    const targetField = field === 'main' ? 'imageUrl' : 
+                       field === 'extra' ? 'imageUrlsText' : 
                        field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
     
     const currentUrls = (value || '').split(',').map(u => u.trim()).filter(u => u);
@@ -58,7 +60,7 @@ const UploadSection = ({ title, field, value, icon: IconEl, colorClass, uploadin
           type="file" 
           className="hidden" 
           accept={field === 'docs' ? "image/*,application/pdf" : "image/*"} 
-          multiple={field !== 'main'} 
+          multiple
           onChange={(e) => handleFileUpload(e, field)} 
         />
         {uploading[field] ? (
@@ -84,16 +86,14 @@ const UploadSection = ({ title, field, value, icon: IconEl, colorClass, uploadin
           type="button"
           onClick={() => {
             if (localLink.trim()) {
-              if (field === 'main') {
-                setForm(prev => ({ ...prev, imageUrl: localLink.trim() }));
-              } else {
-                const targetField = field === 'extra' ? 'imageUrlsText' : 
-                                   field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
-                setForm(prev => ({ 
-                  ...prev, 
-                  [targetField]: prev[targetField] ? `${prev[targetField]}, ${localLink.trim()}` : localLink.trim() 
-                }));
-              }
+              const targetField = field === 'main' ? 'imageUrl' : 
+                                 field === 'extra' ? 'imageUrlsText' : 
+                                 field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
+              
+              setForm(prev => ({ 
+                ...prev, 
+                [targetField]: prev[targetField] ? `${prev[targetField]}, ${localLink.trim()}` : localLink.trim() 
+              }));
               setLocalLink('');
             }
           }}
@@ -103,15 +103,15 @@ const UploadSection = ({ title, field, value, icon: IconEl, colorClass, uploadin
         </button>
       </div>
 
-      {/* Danh sách file (chỉ cho các field multiple) */}
-      {field !== 'main' && urls.length > 0 && (
+      {/* Danh sách file */}
+      {urls.length > 0 && (
         <div className="space-y-1.5 pt-2 border-t border-gray-50">
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">DANH SÁCH FILE ĐÃ THÊM</p>
           <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
             {urls.map((url, i) => (
               <div key={i} className="flex items-center justify-between gap-2 p-1.5 bg-gray-50 rounded-lg group">
                 <div className="flex items-center gap-2 truncate">
-                  <FileText size={12} className="text-gray-400" />
+                  <ImageIcon size={12} className="text-gray-400" />
                   <a href={url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 underline truncate hover:text-blue-700">
                     {url.split('/').pop().substring(0, 20)}...
                   </a>
@@ -136,6 +136,7 @@ const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('Tất cả');
   const [selectedIds, setSelectedIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
@@ -189,21 +190,17 @@ const ProductList = () => {
       });
 
       const publicUrls = await Promise.all(uploadPromises);
+      const joinedUrls = publicUrls.join(', ');
 
       // Cập nhật vào form tương ứng
-      if (field === 'main') {
-        // Ảnh chính chỉ lấy cái đầu tiên nếu chọn nhiều
-        setForm(prev => ({ ...prev, imageUrl: publicUrls[0] }));
-      } else {
-        const joinedUrls = publicUrls.join(', ');
-        const targetField = field === 'extra' ? 'imageUrlsText' : 
-                           field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
-        
-        setForm(prev => ({ 
-          ...prev, 
-          [targetField]: prev[targetField] ? `${prev[targetField]}, ${joinedUrls}` : joinedUrls 
-        }));
-      }
+      const targetField = field === 'main' ? 'imageUrl' : 
+                         field === 'extra' ? 'imageUrlsText' : 
+                         field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
+      
+      setForm(prev => ({ 
+        ...prev, 
+        [targetField]: prev[targetField] ? `${prev[targetField]}, ${joinedUrls}` : joinedUrls 
+      }));
 
       alert(`✅ Đã tải ${publicUrls.length} file lên thành công!`);
     } catch (error) {
@@ -238,12 +235,14 @@ const ProductList = () => {
 
   // Xử lý lọc sản phẩm
   useEffect(() => {
-    const filtered = products.filter(p => 
-      p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.dosage_form?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filtered = products.filter(p => {
+      const matchSearch = p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         p.dosage_form?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchCategory = filterCategory === 'Tất cả' || p.category === filterCategory;
+      return matchSearch && matchCategory;
+    });
     setFilteredProducts(filtered);
-  }, [searchTerm, products]);
+  }, [searchTerm, products, filterCategory]);
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => 
@@ -298,29 +297,29 @@ const ProductList = () => {
 
     // 1. Logo + Tên công ty + Tiêu đề báo cáo
     let imageId = null;
-const candidateLogos = [
-  '/470184049_1205395344807955_5193115280954680355_n.png',
-  '/logo_thaiminh.jpg',
-  '/logo_thaiminh.jpeg',
-  '/logo.png'
-];
+    const candidateLogos = [
+      '/logo_thaiminh.jpg', // Ưu tiên logo chính
+      '/logo.png',
+      '/logo_thaiminh.jpeg'
+    ];
 
-for (const path of candidateLogos) {
-  try {
-    console.log('Đang thử load logo từ:', path);
-    const base64 = await loadImageAsBase64(path);
-    
-    imageId = workbook.addImage({ 
-      base64: base64, 
-      extension: path.endsWith('.png') ? 'png' : 'jpeg' 
-    });
-    
-    console.log('✅ Load logo thành công tại:', path);
-    break; // Thoát vòng lặp khi đã tìm thấy ảnh
-  } catch (error) { 
-    console.log(`❌ Lỗi load ảnh ${path}:`, error.message);
-  }
-}
+    for (const path of candidateLogos) {
+      try {
+        const fullPath = path.startsWith('http') ? path : `${window.location.origin}${path}`;
+        console.log('Đang thử load logo từ:', fullPath);
+        const base64 = await loadImageAsBase64(fullPath);
+        
+        imageId = workbook.addImage({ 
+          base64: base64, 
+          extension: path.toLowerCase().endsWith('.png') ? 'png' : 'jpeg' 
+        });
+        
+        console.log('✅ Load logo thành công tại:', fullPath);
+        break; 
+      } catch (error) { 
+        console.log(`❌ Lỗi load ảnh ${path}:`, error.message);
+      }
+    }
 
     // Nếu vẫn không có file logo, tạo logo fallback bằng Canvas (màu xanh/da cam + chữ TM)
     if (imageId === null) {
@@ -368,27 +367,30 @@ for (const path of candidateLogos) {
       } catch { /* ignore */ }
     }
 
-    // Hàng 1: Logo (A1:B1) và Tên công ty căn giữa C1:E1
+    // Hàng 1: Logo (A1:B1) và Tên công ty căn giữa C1:D1
     worksheet.getCell('C1').value = 'CÔNG TY CỔ PHẦN DƯỢC PHẨM THÁI MINH';
-worksheet.mergeCells('C1:E1');
-worksheet.getCell('C1').font = { name: 'Arial', size: 13.5, bold: true, color: { argb: '1E3A8A' } };
-worksheet.getCell('C1').alignment = { vertical: 'middle', horizontal: 'center' };
-worksheet.getRow(1).height = 64;
+    worksheet.mergeCells('C1:D1');
+    worksheet.getCell('C1').font = { name: 'Arial', size: 14, bold: true, color: { argb: '1E3A8A' } };
+    worksheet.getCell('C1').alignment = { vertical: 'middle', horizontal: 'center' };
+    worksheet.getRow(1).height = 130; // 1.81 inch ≈ 130 points
 
-// Chèn logo nếu có (A1:B1)
-if (imageId !== null) {
-  try {
-    // Dùng neo 2-cell để tránh xung đột merge/row-height
-    worksheet.addImage(imageId, {
-      tl: { col: 0, row: 0 },   // A1
-      br: { col: 2, row: 1 }    // B1 (col is exclusive upper bound -> 2 = cột B)
-    });
-  } catch { /* ignore */ }
-}
+    // Chèn logo nếu có (A1:B1)
+    if (imageId !== null) {
+      try {
+        // Chèn logo phủ kín vùng A1:B1
+        worksheet.addImage(imageId, {
+          tl: { col: 0, row: 0 },
+          br: { col: 2, row: 1 },
+          editAs: 'oneCell'
+        });
+      } catch (err) { 
+        console.error('Lỗi chèn logo vào worksheet:', err);
+      }
+    }
 
-// 2. Tiêu đề báo cáo (A2:M4)
+// 2. Tiêu đề báo cáo (A2:N4)
 worksheet.getCell('A2').value = 'BÁO CÁO SẢN PHẨM';
-worksheet.mergeCells('A2:M4');
+worksheet.mergeCells('A2:N4');
 worksheet.getCell('A2').font = { name: 'Arial', size: 18, bold: true };
 worksheet.getCell('A2').alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
 
@@ -397,7 +399,7 @@ worksheet.getRow(2).height = 30;
 worksheet.getRow(3).height = 30;
 worksheet.getRow(4).height = 30;
 
-// 3. Ngày xuất (M5:M6)
+// 3. Ngày xuất (N5:N6)
 const now = new Date();
 const dd = String(now.getDate()).padStart(2, '0');
 const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -406,10 +408,10 @@ const HH = String(now.getHours()).padStart(2, '0');
 const MM = String(now.getMinutes()).padStart(2, '0');
 const dateStr = `Ngày xuất: ${dd}/${mm}/${yyyy} ${HH}:${MM}`;
 
-worksheet.getCell('M5').value = dateStr;
-worksheet.mergeCells('M5:M6');
-worksheet.getCell('M5').font = { italic: true };
-worksheet.getCell('M5').alignment = { horizontal: 'center', vertical: 'middle' };
+worksheet.getCell('N5').value = dateStr;
+worksheet.mergeCells('N5:N6');
+worksheet.getCell('N5').font = { italic: true };
+worksheet.getCell('N5').alignment = { horizontal: 'center', vertical: 'middle' };
 
 // Căn chỉnh chiều cao cho vùng Ngày xuất
 worksheet.getRow(5).height = 22;
@@ -419,7 +421,7 @@ worksheet.getRow(6).height = 22;
 
     // 3. Header bảng
     const headers = [
-      'STT', 'Ảnh', 'Tên sản phẩm', 'Giá niêm yết', 'Dạng bào chế', 'HSD (tháng)', 
+      'STT', 'Ảnh', 'Tên sản phẩm', 'Danh mục', 'Giá niêm yết', 'Dạng bào chế', 'HSD (tháng)', 
       'Thành phần', 'Công dụng', 'Cách dùng', 'Tác dụng phụ', 'Lưu ý', 'Bảo quản', 'Mô tả'
     ];
     const headerRow = worksheet.addRow(headers);
@@ -480,10 +482,12 @@ worksheet.getRow(6).height = 22;
 
     for (let i = 0; i < dataToExport.length; i++) {
       const p = dataToExport[i];
+      const categoryStr = p.category ? `${p.category}${p.sub_category ? ` - ${p.sub_category}` : ''}` : '-';
       const rowData = [
         i + 1,
         '', // cột ảnh (sẽ chèn sau)
         p.name,
+        categoryStr,
         p.price ? `${p.price.toLocaleString()} ₫` : '0 ₫',
         p.dosage_form || '-',
         p.expiry_months || '-',
@@ -506,7 +510,11 @@ worksheet.getRow(6).height = 22;
           right: { style: 'thin' }
         };
         
-        if ([1, 2, 4, 5, 6].includes(colNumber)) {
+        // Cỡ chữ 12 cho tất cả các ô dữ liệu
+        cell.font = { size: 12 };
+        
+        // Căn giữa cho các cột: STT(1), Ảnh(2), Tên sản phẩm(3), Danh mục(4), Giá(5), Dạng bào chế(6), HSD(7)
+        if ([1, 2, 3, 4, 5, 6, 7].includes(colNumber)) {
           cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
         } else {
           cell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
@@ -522,19 +530,19 @@ worksheet.getRow(6).height = 22;
           // Tăng chiều cao hàng để chứa ảnh
           const rowNumber = row.number;
           worksheet.getRow(rowNumber).height = 110;
-          // Chèn ảnh theo toạ độ tuyệt đối bám theo ô B{row}
-          // col/row là 0-based
+          
+          // Chèn ảnh và căn giữa trong ô B
           worksheet.addImage(imgId, {
-            tl: { col: 1, row: rowNumber - 1 },
-            ext: { width: 120, height: 100 },
+            tl: { col: 1, row: rowNumber - 1, colOff: 100000, rowOff: 100000 },
+            br: { col: 2, row: rowNumber, colOff: -100000, rowOff: -100000 },
             editAs: 'oneCell'
           });
         } catch { /* ignore */ }
       }
     }
 
-    // 5. Độ rộng cột
-    const colWidths = [8, 18, 22, 18, 16, 12, 24, 24, 24, 24, 24, 18, 28];
+    // 5. Độ rộng cột (Tăng độ rộng C, D để tên công ty Thái Minh hiển thị đẹp)
+    const colWidths = [10, 25, 45, 35, 18, 16, 12, 24, 24, 24, 24, 24, 18, 28];
     colWidths.forEach((width, i) => {
       worksheet.getColumn(i + 1).width = width;
     });
@@ -550,6 +558,8 @@ worksheet.getRow(6).height = 22;
     setForm({
       name: p.name || '',
       price: p.price ?? '',
+      category: p.category || '',
+      sub_category: p.sub_category || '',
       description: p.description || '',
       imageUrl: p.image_url || '',
       imageUrlsText: Array.isArray(p.image_urls) ? p.image_urls.join(', ') : '',
@@ -589,10 +599,19 @@ worksheet.getRow(6).height = 22;
         setSaving(false);
         return;
       }
+
+      // Gộp các link nhập tay và ảnh chính
+      const mainImages = (form.imageUrl || '')
+        .split(',')
+        .map(u => u.trim())
+        .filter(u => u);
+
       const extraUrls = (form.imageUrlsText || '')
         .split(',')
         .map(u => u.trim())
         .filter(u => u);
+
+      const allImages = [...mainImages, ...extraUrls];
       
       const relatedDocUrls = (form.relatedDocsText || '')
         .split(',')
@@ -608,6 +627,8 @@ worksheet.getRow(6).height = 22;
         .from('products')
         .update({
           name: form.name,
+          category: form.category,
+          sub_category: form.sub_category,
           description: form.description,
           dosage_form: form.dosage_form,
           expiry_months: form.expiry_months ? Number(form.expiry_months) : null,
@@ -617,10 +638,10 @@ worksheet.getRow(6).height = 22;
           side_effects: form.side_effects,
           storage: form.storage,
           precautions: form.precautions,
-          image_urls: extraUrls,
+          image_urls: allImages,
           related_docs: relatedDocUrls,
           related_qrs: relatedQrUrls,
-          image_url: form.imageUrl || extraUrls[0] || 'https://placehold.co/400',
+          image_url: mainImages[0] || extraUrls[0] || 'https://placehold.co/400',
           price: form.price !== '' ? Number(form.price) : null,
           updated_at: new Date().toISOString()
         })
@@ -664,13 +685,28 @@ worksheet.getRow(6).height = 22;
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input 
-            type="text"
-            placeholder="Tìm kiếm theo tên hoặc dạng bào chế..."
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none transition"
+            type="text" 
+            placeholder="Tìm kiếm theo tên hoặc dạng bào chế..." 
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <Filter size={18} className="text-gray-400" />
+          <select
+            className="px-4 py-2 bg-gray-50 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition"
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+          >
+            <option value="Tất cả">Tất cả danh mục</option>
+            {PRODUCT_CATEGORIES.map(cat => (
+              <option key={cat.name} value={cat.name}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+
         <div className="flex items-center gap-2 text-sm text-gray-500 whitespace-nowrap">
           <span>Hiển thị: <strong>{filteredProducts.length}</strong> sản phẩm</span>
         </div>
@@ -691,6 +727,7 @@ worksheet.getRow(6).height = 22;
                   </button>
                 </th>
                 <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Tên sản phẩm</th>
+                <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Danh mục</th>
                 <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Giá niêm yết</th>
                 <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Dạng bào chế</th>
                 <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">HSD</th>
@@ -730,6 +767,12 @@ worksheet.getRow(6).height = 22;
                       </button>
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-900">{p.name}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-gray-800">{p.category || '-'}</span>
+                        <span className="text-[10px] text-gray-500">{p.sub_category}</span>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-indigo-600 font-bold">{p.price?.toLocaleString()} ₫</td>
                     <td className="px-4 py-3 text-gray-600">{p.dosage_form || '-'}</td>
                     <td className="px-4 py-3">
@@ -816,6 +859,43 @@ worksheet.getRow(6).height = 22;
                         value={form.price}
                         onChange={e=>setForm({...form, price:e.target.value})}
                       />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                        <Filter size={18} className="text-indigo-500"/> Danh mục chính
+                      </label>
+                      <select
+                        className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                        value={form.category}
+                        onChange={e=>{
+                          const cat = e.target.value;
+                          setForm({...form, category: cat, sub_category: ''});
+                        }}
+                      >
+                        <option value="">Chọn danh mục chính</option>
+                        {PRODUCT_CATEGORIES.map(cat => (
+                          <option key={cat.name} value={cat.name}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                        <Filter size={18} className="text-indigo-500"/> Danh mục con
+                      </label>
+                      <select
+                        className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                        value={form.sub_category}
+                        disabled={!form.category}
+                        onChange={e=>setForm({...form, sub_category: e.target.value})}
+                      >
+                        <option value="">Chọn danh mục con</option>
+                        {PRODUCT_CATEGORIES.find(cat => cat.name === form.category)?.subCategories.map(sub => (
+                          <option key={sub} value={sub}>{sub}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
@@ -954,7 +1034,11 @@ worksheet.getRow(6).height = 22;
                   {/* Preview Ảnh chính */}
                   <div className="bg-white border border-gray-100 rounded-2xl h-64 flex items-center justify-center overflow-hidden shadow-sm relative group">
                     {form.imageUrl ? (
-                      <img src={form.imageUrl} alt="Preview" className="w-full h-full object-contain p-2" />
+                      <img 
+                        src={form.imageUrl.split(',')[0].trim()} 
+                        alt="Preview" 
+                        className="w-full h-full object-contain p-2" 
+                      />
                     ) : (
                       <div className="text-center">
                         <ImageIcon size="40" className="mx-auto text-gray-200 mb-2" />

@@ -3,8 +3,9 @@ import { supabase } from '../../services/supabase';
 import { 
   Plus, Save, Loader2, Image as ImageIcon, Pill, Clock, ShieldAlert, FileText, Archive, 
   Package, CircleDollarSign, Calendar, Info, FlaskConical, Stethoscope, Activity, 
-  AlertTriangle, Thermometer, FileSearch, X, QrCode, Upload 
+  AlertTriangle, Thermometer, FileSearch, X, QrCode, Upload, Filter 
 } from 'lucide-react';
+import { PRODUCT_CATEGORIES } from '../../utils/categories';
 
 const UploadSection = ({ title, field, value, icon: IconEl, colorClass, uploading, handleFileUpload, setFormData, formData }) => {
   const [localLink, setLocalLink] = useState('');
@@ -13,7 +14,8 @@ const UploadSection = ({ title, field, value, icon: IconEl, colorClass, uploadin
 
   // Hàm xóa ảnh/file khỏi danh sách
   const removeFile = (field, index) => {
-    const targetField = field === 'extra' ? 'imageUrlsText' : 
+    const targetField = field === 'main' ? 'imageUrl' : 
+                       field === 'extra' ? 'imageUrlsText' : 
                        field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
     
     const currentUrls = (formData[targetField] || '').split(',').map(u => u.trim()).filter(u => u);
@@ -54,7 +56,7 @@ const UploadSection = ({ title, field, value, icon: IconEl, colorClass, uploadin
           type="file" 
           className="hidden" 
           accept={field === 'docs' ? "image/*,application/pdf" : "image/*"} 
-          multiple={field !== 'main'} 
+          multiple
           onChange={(e) => handleFileUpload(e, field)} 
         />
         {uploading[field] ? (
@@ -80,16 +82,14 @@ const UploadSection = ({ title, field, value, icon: IconEl, colorClass, uploadin
           type="button"
           onClick={() => {
             if (localLink.trim()) {
-              if (field === 'main') {
-                setFormData(prev => ({ ...prev, imageUrl: localLink.trim() }));
-              } else {
-                const targetField = field === 'extra' ? 'imageUrlsText' : 
-                                   field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
-                setFormData(prev => ({ 
-                  ...prev, 
-                  [targetField]: prev[targetField] ? `${prev[targetField]}, ${localLink.trim()}` : localLink.trim() 
-                }));
-              }
+              const targetField = field === 'main' ? 'imageUrl' : 
+                                 field === 'extra' ? 'imageUrlsText' : 
+                                 field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
+              
+              setFormData(prev => ({ 
+                ...prev, 
+                [targetField]: prev[targetField] ? `${prev[targetField]}, ${localLink.trim()}` : localLink.trim() 
+              }));
               setLocalLink('');
             }
           }}
@@ -99,15 +99,15 @@ const UploadSection = ({ title, field, value, icon: IconEl, colorClass, uploadin
         </button>
       </div>
 
-      {/* Danh sách file (chỉ cho các field multiple) */}
-      {field !== 'main' && urls.length > 0 && (
+      {/* Danh sách file */}
+      {urls.length > 0 && (
         <div className="space-y-1.5 pt-2 border-t border-gray-50">
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">DANH SÁCH FILE ĐÃ THÊM</p>
           <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
             {urls.map((url, i) => (
               <div key={i} className="flex items-center justify-between gap-2 p-1.5 bg-gray-50 rounded-lg group">
                 <div className="flex items-center gap-2 truncate">
-                  <FileText size={12} className="text-gray-400" />
+                  <ImageIcon size={12} className="text-gray-400" />
                   <a href={url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 underline truncate hover:text-blue-700">
                     {url.split('/').pop().substring(0, 20)}...
                   </a>
@@ -134,15 +134,17 @@ const ProductManager = () => {
   const [formData, setFormData] = useState({
     name: '',
     price: '',
+    category: '',
+    sub_category: '',
     description: '',
     imageUrl: '',
     imageUrlsText: '',
-    dosageForm: '',
-    expiryMonths: '',
+    dosage_form: '',
+    expiry_months: '',
     ingredients: '',
     uses: '',
     directions: '',
-    sideEffects: '',
+    side_effects: '',
     storage: '',
     precautions: '',
     relatedDocsText: '',
@@ -195,21 +197,17 @@ const ProductManager = () => {
       });
 
       const publicUrls = await Promise.all(uploadPromises);
+      const joinedUrls = publicUrls.join(', ');
 
       // Cập nhật vào form tương ứng
-      if (field === 'main') {
-        // Ảnh chính chỉ lấy cái đầu tiên nếu chọn nhiều
-        setFormData(prev => ({ ...prev, imageUrl: publicUrls[0] }));
-      } else {
-        const joinedUrls = publicUrls.join(', ');
-        const targetField = field === 'extra' ? 'imageUrlsText' : 
-                           field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
-        
-        setFormData(prev => ({ 
-          ...prev, 
-          [targetField]: prev[targetField] ? `${prev[targetField]}, ${joinedUrls}` : joinedUrls 
-        }));
-      }
+      const targetField = field === 'main' ? 'imageUrl' : 
+                         field === 'extra' ? 'imageUrlsText' : 
+                         field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
+      
+      setFormData(prev => ({ 
+        ...prev, 
+        [targetField]: prev[targetField] ? `${prev[targetField]}, ${joinedUrls}` : joinedUrls 
+      }));
 
       alert(`✅ Đã tải ${publicUrls.length} file lên thành công!`);
     } catch (error) {
@@ -241,11 +239,18 @@ const ProductManager = () => {
         setLoading(false);
         return;
       }
-      // Gộp các link nhập tay
+      // Gộp các link nhập tay và ảnh chính
+      const mainImages = (formData.imageUrl || '')
+        .split(',')
+        .map(u => u.trim())
+        .filter(u => u);
+
       const extraUrls = (formData.imageUrlsText || '')
         .split(',')
         .map(u => u.trim())
         .filter(u => u);
+
+      const allImages = [...mainImages, ...extraUrls];
       
       const relatedDocUrls = (formData.relatedDocsText || '')
         .split(',')
@@ -262,17 +267,19 @@ const ProductManager = () => {
         .insert([{
           name: formData.name,
           price: Number(formData.price),
+          category: formData.category,
+          sub_category: formData.sub_category,
           description: formData.description,
-          image_url: formData.imageUrl || extraUrls[0] || 'https://placehold.co/400',
-          image_urls: extraUrls,
+          image_url: mainImages[0] || extraUrls[0] || 'https://placehold.co/400',
+          image_urls: allImages,
           related_docs: relatedDocUrls,
           related_qrs: relatedQrUrls,
-          dosage_form: formData.dosageForm || '',
-          expiry_months: formData.expiryMonths ? Number(formData.expiryMonths) : null,
+          dosage_form: formData.dosage_form || '',
+          expiry_months: formData.expiry_months ? Number(formData.expiry_months) : null,
           ingredients: formData.ingredients || '',
           uses: formData.uses || '',
           directions: formData.directions || '',
-          side_effects: formData.sideEffects || '',
+          side_effects: formData.side_effects || '',
           storage: formData.storage || '',
           precautions: formData.precautions || '',
           created_at: new Date().toISOString()
@@ -285,17 +292,19 @@ const ProductManager = () => {
       setFormData({ 
         name: '', 
         price: '', 
+        category: '',
+        sub_category: '',
         description: '', 
         imageUrl: '',
         imageUrlsText: '',
         relatedDocsText: '',
         relatedQRsText: '',
-        dosageForm: '',
-        expiryMonths: '',
+        dosage_form: '',
+        expiry_months: '',
         ingredients: '',
         uses: '',
         directions: '',
-        sideEffects: '',
+        side_effects: '',
         storage: '',
         precautions: ''
       }); // Reset form
@@ -357,28 +366,66 @@ const ProductManager = () => {
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                  <Pill size={18} className="text-blue-500"/> Dạng bào chế
+                  <Filter size={18} className="text-indigo-500"/> Danh mục chính
                 </label>
-                <input
+                <select
+                  required
                   className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
-                  placeholder="VD: Viên nén bao phim"
-                  value={formData.dosageForm}
-                  onChange={e => setFormData({...formData, dosageForm: e.target.value})}
-                />
+                  value={formData.category}
+                  onChange={e => {
+                    const cat = e.target.value;
+                    setFormData({...formData, category: cat, sub_category: ''});
+                  }}
+                >
+                  <option value="">Chọn danh mục chính</option>
+                  {PRODUCT_CATEGORIES.map(cat => (
+                    <option key={cat.name} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                  <Calendar size={18} className="text-orange-500"/> Hạn sử dụng (tháng)
+                  <Filter size={18} className="text-indigo-500"/> Danh mục con
                 </label>
-                <input
-                  type="number"
+                <select
                   className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
-                  placeholder="VD: 36"
-                  value={formData.expiryMonths}
-                  onChange={e => setFormData({...formData, expiryMonths: e.target.value})}
-                />
+                  value={formData.sub_category}
+                  disabled={!formData.category}
+                  onChange={e => setFormData({...formData, sub_category: e.target.value})}
+                >
+                  <option value="">Chọn danh mục con</option>
+                  {PRODUCT_CATEGORIES.find(cat => cat.name === formData.category)?.subCategories.map(sub => (
+                    <option key={sub} value={sub}>{sub}</option>
+                  ))}
+                </select>
               </div>
             </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                      <Pill size={18} className="text-blue-500"/> Dạng bào chế
+                    </label>
+                    <input
+                      className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                      placeholder="VD: Viên nén bao phim"
+                      value={formData.dosage_form}
+                      onChange={e => setFormData({...formData, dosage_form: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                      <Calendar size={18} className="text-orange-500"/> Hạn sử dụng (tháng)
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30"
+                      placeholder="VD: 36"
+                      value={formData.expiry_months}
+                      onChange={e => setFormData({...formData, expiry_months: e.target.value})}
+                    />
+                  </div>
+                </div>
 
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
@@ -434,32 +481,32 @@ const ProductManager = () => {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                  <AlertTriangle size={18} className="text-red-500"/> Tác dụng phụ
-                </label>
-                <textarea
-                  rows="3"
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30 min-h-36"
-                  placeholder="Buồn ngủ, chóng mặt..."
-                  value={formData.sideEffects}
-                  onChange={e => setFormData({...formData, sideEffects: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                  <Thermometer size={18} className="text-orange-500"/> Bảo quản
-                </label>
-                <textarea
-                  rows="3"
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30 min-h-36"
-                  placeholder="Nhiệt độ, tránh ẩm..."
-                  value={formData.storage}
-                  onChange={e => setFormData({...formData, storage: e.target.value})}
-                />
-              </div>
-            </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                      <AlertTriangle size={18} className="text-red-500"/> Tác dụng phụ
+                    </label>
+                    <textarea
+                      rows="3"
+                      className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30 min-h-36"
+                      placeholder="Buồn ngủ, chóng mặt..."
+                      value={formData.side_effects}
+                      onChange={e => setFormData({...formData, side_effects: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                      <Thermometer size={18} className="text-orange-500"/> Bảo quản
+                    </label>
+                    <textarea
+                      rows="3"
+                      className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50/30 min-h-36"
+                      placeholder="Nhiệt độ, tránh ẩm..."
+                      value={formData.storage}
+                      onChange={e => setFormData({...formData, storage: e.target.value})}
+                    />
+                  </div>
+                </div>
 
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
@@ -490,10 +537,14 @@ const ProductManager = () => {
             />
 
             {/* Preview Ảnh chính */}
-            <div className="bg-white border border-gray-100 rounded-2xl h-64 flex items-center justify-center overflow-hidden shadow-sm relative group">
-              {formData.imageUrl ? (
-                <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-contain p-2" />
-              ) : (
+                  <div className="bg-white border border-gray-100 rounded-2xl h-64 flex items-center justify-center overflow-hidden shadow-sm relative group">
+                    {formData.imageUrl ? (
+                      <img 
+                        src={formData.imageUrl.split(',')[0].trim()} 
+                        alt="Preview" 
+                        className="w-full h-full object-contain p-2" 
+                      />
+                    ) : (
                 <div className="text-center">
                   <ImageIcon size={40} className="mx-auto text-gray-200 mb-2" />
                   <span className="text-gray-400 text-xs font-medium">Xem trước hình ảnh</span>
