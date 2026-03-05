@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { supabase } from '../services/supabase';
 
 export const AuthContext = createContext();
@@ -7,6 +7,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // User object từ Supabase Auth
   const [role, setRole] = useState(null); // 'admin' | 'user' | 'lab'
   const [loading, setLoading] = useState(true);
+  
+  // Dùng ref để kiểm soát việc nạp Role (tránh nạp lặp lại gây lỗi Lock)
+  const currentSessionUserId = useRef(null);
 
   // 1. Đăng ký tài khoản mới
   const register = async (email, password, fullName) => {
@@ -78,8 +81,13 @@ export const AuthProvider = ({ children }) => {
       console.log("Auth Event:", event);
       
       if (session) {
-        await handleUserSession(session.user);
+        // Chỉ nạp Role nếu là User mới hoặc sự kiện SIGNED_IN thực sự
+        if (currentSessionUserId.current !== session.user.id || event === 'SIGNED_IN') {
+          currentSessionUserId.current = session.user.id;
+          await handleUserSession(session.user);
+        }
       } else {
+        currentSessionUserId.current = null;
         setUser(null);
         setRole(null);
         setLoading(false);

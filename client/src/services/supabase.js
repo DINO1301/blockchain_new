@@ -9,4 +9,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error("❌ THIẾU BIẾN MÔI TRƯỜNG SUPABASE! Hãy kiểm tra file .env hoặc cấu hình trên Vercel.");
 }
 
-export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder');
+export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder', {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storageKey: 'meditrack-auth-token' // Đặt tên khóa riêng biệt để tránh xung đột
+  }
+});
