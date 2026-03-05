@@ -24,9 +24,6 @@ export const Web3Provider = ({ children }) => {
         const readProvider = new ethers.JsonRpcProvider(url, 11155111, { staticNetwork: true });
         const readContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, readProvider);
         
-        // Thử gọi một hàm đơn giản để kiểm tra tốc độ phản hồi
-        await readProvider.getBlockNumber(); 
-        
         // CHỈ setContract nếu chưa có currentAccount (tránh ghi đè bản Write-mode)
         setContract(prev => {
           if (prev && prev.runner && typeof prev.runner.sendTransaction === 'function') return prev;
@@ -49,10 +46,10 @@ export const Web3Provider = ({ children }) => {
 
       if (accounts.length) {
         setCurrentAccount(accounts[0]);
-        connectContractWithSigner(); // Nâng cấp quyền
+        await connectContractWithSigner(); // Nâng cấp quyền
       }
     } catch (error) {
-      console.error(error);
+      console.error("Lỗi kiểm tra ví:", error);
     }
   };
 
@@ -62,11 +59,17 @@ export const Web3Provider = ({ children }) => {
       if (!ethereum) return alert("Vui lòng cài đặt MetaMask!");
       setIsLoading(true);
       const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-      setCurrentAccount(accounts[0]);
-      connectContractWithSigner(); // Nâng cấp quyền
-      setIsLoading(false);
+      if (accounts.length > 0) {
+        setCurrentAccount(accounts[0]);
+        await connectContractWithSigner(); // Nâng cấp quyền
+        localStorage.setItem('isWalletConnected', 'true');
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Lỗi kết nối ví:", error);
+      if (error.code !== 4001) { // 4001 là lỗi người dùng từ chối
+        alert("Lỗi kết nối ví: " + (error.message || "Không rõ lỗi"));
+      }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -78,9 +81,10 @@ export const Web3Provider = ({ children }) => {
         const signer = await provider.getSigner();
         const writeContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
         setContract(writeContract); // Ghi đè contract cũ bằng contract "xịn" hơn
-        localStorage.setItem('isWalletConnected', 'true');
     } catch (error) {
-        console.log("Lỗi nạp Signer:", error);
+        console.error("Lỗi nạp Signer:", error);
+        // Nếu lỗi nạp Signer, quay về Read-only
+        initReadOnlyContract();
     }
   }
 
@@ -93,14 +97,38 @@ export const Web3Provider = ({ children }) => {
   };
 
   useEffect(() => {
-    try {
+    const init = async () => {
+      // Chạy song song thay vì tuần tự để tránh treo
       initReadOnlyContract();
+      
       const shouldAutoConnect = localStorage.getItem('isWalletConnected') === 'true';
       if (shouldAutoConnect) {
         checkIfWalletIsConnected();
       }
-    } catch (error) {
-      console.error("Error in Web3Context useEffect:", error);
+    };
+    init();
+
+    if (ethereum) {
+      const handleAccountsChanged = (accounts) => {
+        if (accounts.length > 0) {
+          setCurrentAccount(accounts[0]);
+          connectContractWithSigner();
+        } else {
+          disconnectWallet();
+        }
+      };
+
+      const handleChainChanged = () => {
+        window.location.reload();
+      };
+
+      ethereum.on('accountsChanged', handleAccountsChanged);
+      ethereum.on('chainChanged', handleChainChanged);
+
+      return () => {
+        ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        ethereum.removeListener('chainChanged', handleChainChanged);
+      };
     }
   }, []);
 

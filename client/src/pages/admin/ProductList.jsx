@@ -213,7 +213,17 @@ const ProductList = () => {
   };
 
   const load = async () => {
+    console.log("🚀 Đang tải danh sách sản phẩm...");
     setLoading(true);
+    
+    // Timeout an toàn 10 giây
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn("⚠️ Tải danh sách quá lâu (10s), đang tắt spinner...");
+        setLoading(false);
+      }
+    }, 10000);
+
     try {
       const { data, error } = await supabase
         .from('products')
@@ -221,17 +231,21 @@ const ProductList = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
+      console.log("✅ Đã tải xong:", data?.length || 0, "sản phẩm.");
       setProducts(data || []);
       setFilteredProducts(data || []);
     } catch (error) {
-      console.error("Lỗi tải danh sách sản phẩm:", error);
+      console.error("❌ Lỗi tải danh sách sản phẩm:", error);
       alert("Lỗi: " + error.message);
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    load(); 
+  }, []);
 
   // Xử lý lọc sản phẩm
   useEffect(() => {
