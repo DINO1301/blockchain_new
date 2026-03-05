@@ -74,15 +74,24 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
+    // Bộ đếm an toàn: Nếu sau 3s không có phản hồi từ Auth, tắt spinner ngay
+    const globalTimeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn("⚠️ Quá 3s không nhận được tín hiệu Auth, tự động mở web.");
+        setLoading(false);
+      }
+    }, 3000);
+
     // Lắng nghe thay đổi auth (Supabase tự động gọi khi khởi tạo - không cần getSession riêng)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
       console.log("Auth Event:", event);
+      clearTimeout(globalTimeout); // Có tín hiệu là xóa bộ đếm an toàn ngay
       
       if (session) {
         // Chỉ nạp Role nếu là User mới hoặc sự kiện SIGNED_IN thực sự
-        if (currentSessionUserId.current !== session.user.id || event === 'SIGNED_IN') {
+        if (currentSessionUserId.current !== session.user.id || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
           currentSessionUserId.current = session.user.id;
           await handleUserSession(session.user);
         }
@@ -96,6 +105,7 @@ export const AuthProvider = ({ children }) => {
 
     return () => {
       mounted = false;
+      clearTimeout(globalTimeout);
       subscription.unsubscribe();
     };
   }, []);
