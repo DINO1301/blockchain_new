@@ -69,28 +69,14 @@ export const AuthProvider = ({ children }) => {
 
   // 4. Theo dõi trạng thái đăng nhập
   useEffect(() => {
-    // Lấy session hiện tại khi khởi tạo
-    const initAuth = async () => {
-      try {
-        setLoading(true);
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        
-        if (session) {
-          await handleUserSession(session.user);
-        } else {
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Init Auth Error:", error);
-        setLoading(false);
-      }
-    };
+    let mounted = true;
 
-    initAuth();
-
-    // Lắng nghe thay đổi auth
+    // Lắng nghe thay đổi auth (Supabase tự động gọi khi khởi tạo - không cần getSession riêng)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
+      console.log("Auth Event:", event);
+      
       if (session) {
         await handleUserSession(session.user);
       } else {
@@ -101,6 +87,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
