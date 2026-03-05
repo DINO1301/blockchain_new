@@ -71,11 +71,18 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Lấy session hiện tại khi khởi tạo
     const initAuth = async () => {
-      setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await handleUserSession(session.user);
-      } else {
+      try {
+        setLoading(true);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        if (session) {
+          await handleUserSession(session.user);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Init Auth Error:", error);
         setLoading(false);
       }
     };
