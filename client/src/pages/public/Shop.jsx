@@ -38,17 +38,34 @@ const Shop = () => {
 
   useEffect(() => {
     const fetchProducts = async () => {
+      console.log("🚀 Shop: Bắt đầu tải sản phẩm từ Supabase...");
+      console.log("URL Supabase:", import.meta.env.VITE_SUPABASE_URL ? "Đã nạp" : "CHƯA CÓ");
+      setLoading(true);
+      
+      const timeout = setTimeout(() => {
+        if (loading) {
+          console.warn("⚠️ Tải shop quá lâu (10s), có thể do trình duyệt chặn (AdBlock) hoặc mạng lỗi.");
+          setLoading(false);
+        }
+      }, 10000);
+
       try {
         const { data, error } = await supabase
           .from('products')
           .select('*')
           .order('created_at', { ascending: false });
         
-        if (error) throw error;
+        if (error) {
+          console.error("❌ Lỗi từ Supabase:", error.message, error.details, error.hint);
+          throw error;
+        }
+        
+        console.log("✅ Shop: Đã nạp thành công", data?.length || 0, "sản phẩm.");
         setProducts(data || []);
       } catch (error) {
-        console.error("Lỗi tải shop:", error);
+        console.error("❌ Lỗi ngoại lệ khi tải shop:", error);
       } finally {
+        clearTimeout(timeout);
         setLoading(false);
       }
     };
