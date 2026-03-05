@@ -43,10 +43,8 @@ const Shop = () => {
       setLoading(true);
       
       const timeout = setTimeout(() => {
-        if (loading) {
-          console.warn("⚠️ Tải shop quá lâu (10s), có thể do trình duyệt chặn (AdBlock) hoặc mạng lỗi.");
-          setLoading(false);
-        }
+        console.warn("⚠️ Tải shop quá lâu (10s), ép buộc tắt spinner.");
+        setLoading(false);
       }, 10000);
 
       try {

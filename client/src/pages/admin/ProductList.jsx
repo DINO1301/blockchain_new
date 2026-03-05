@@ -218,10 +218,8 @@ const ProductList = () => {
     
     // Timeout an toàn 10 giây
     const timeout = setTimeout(() => {
-      if (loading) {
-        console.warn("⚠️ Tải danh sách quá lâu (10s), đang tắt spinner...");
-        setLoading(false);
-      }
+      console.warn("⚠️ Tải danh sách quá lâu (10s), ép buộc tắt spinner.");
+      setLoading(false);
     }, 10000);
 
     try {

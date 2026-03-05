@@ -104,7 +104,7 @@ export const AuthProvider = ({ children }) => {
 
     // Safety timeout: Nếu lấy role quá 5s thì bỏ qua, cho vào web luôn
     const roleTimeout = setTimeout(() => {
-      console.warn("⚠️ Hết thời gian chờ lấy Role (5s), tự động gán role mặc định.");
+      console.warn("⚠️ Hết thời gian chờ lấy Role (5s), ép buộc tắt loading.");
       setRole(authUser.email === "nguyenhieu@gmail.com" ? 'admin' : 'user');
       setLoading(false);
     }, 5000);
