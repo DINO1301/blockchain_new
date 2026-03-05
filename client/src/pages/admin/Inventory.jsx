@@ -141,15 +141,6 @@ const Inventory = () => {
   const fetchMyInventory = async () => {
     if (!contract || !currentAccount) return;
     setLoading(true);
-
-    // Timeout an toàn 10 giây
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.warn("⚠️ Tải kho hàng quá lâu (10s), tự động tắt spinner.");
-        setLoading(false);
-      }
-    }, 10000);
-
     const tempBatches = [];
 
     try {
@@ -208,7 +199,6 @@ const Inventory = () => {
     } catch (err) {
       console.error("Lỗi tải kho hàng:", err);
     } finally {
-      clearTimeout(timeout);
       setLoading(false);
     }
   };

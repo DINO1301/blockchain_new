@@ -23,15 +23,6 @@ const Tracking = () => {
     if (!id || id.trim() === "") return;
     
     setLoading(true);
-
-    // Timeout an toàn 10 giây
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.warn("⚠️ Tra cứu quá lâu (10s), tự động tắt spinner.");
-        setLoading(false);
-      }
-    }, 10000);
-
     setError('');
     setBatchData(null);
     setProductDetails(null);
@@ -123,7 +114,6 @@ const Tracking = () => {
 
       setError(message);
     } finally {
-      clearTimeout(timeout);
       setLoading(false);
     }
   };

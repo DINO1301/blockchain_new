@@ -38,15 +38,6 @@ const Shop = () => {
 
   useEffect(() => {
     const fetchProducts = async () => {
-      setLoading(true);
-      // Timeout an toàn 10 giây
-      const timeout = setTimeout(() => {
-        if (loading) {
-          console.warn("⚠️ Tải shop quá lâu (10s), tự động tắt spinner.");
-          setLoading(false);
-        }
-      }, 10000);
-
       try {
         const { data, error } = await supabase
           .from('products')
@@ -58,7 +49,6 @@ const Shop = () => {
       } catch (error) {
         console.error("Lỗi tải shop:", error);
       } finally {
-        clearTimeout(timeout);
         setLoading(false);
       }
     };
