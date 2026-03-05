@@ -100,28 +100,38 @@ export const AuthProvider = ({ children }) => {
 
     // Set user ngay lập tức để Header hiện tên/email, không bắt chờ DB
     setUser(authUser);
+    console.log("Đang lấy thông tin role cho user:", authUser.id);
+
+    // Safety timeout: Nếu lấy role quá 5s thì bỏ qua, cho vào web luôn
+    const roleTimeout = setTimeout(() => {
+      console.warn("⚠️ Hết thời gian chờ lấy Role (5s), tự động gán role mặc định.");
+      setRole(authUser.email === "nguyenhieu@gmail.com" ? 'admin' : 'user');
+      setLoading(false);
+    }, 5000);
 
     try {
-      // Tải Role chạy ngầm
       const { data: userData, error: dbError } = await supabase
         .from('users')
         .select('*')
         .eq('id', authUser.id)
         .single();
       
+      clearTimeout(roleTimeout);
       const ADMIN_EMAIL = "nguyenhieu@gmail.com";
       const isHardcodedAdmin = authUser.email === ADMIN_EMAIL;
       
       if (!dbError && userData) {
+        console.log("✅ Đã lấy xong Role:", userData.role);
         setUser({ ...authUser, ...userData });
         setRole(isHardcodedAdmin ? 'admin' : userData.role); 
       } else {
+        console.warn("ℹ️ Không tìm thấy profile trong bảng users, dùng mặc định.");
         setRole(isHardcodedAdmin ? 'admin' : 'user');
       }
     } catch (error) {
-      console.error("Auth Error:", error);
+      console.error("❌ Lỗi nạp Role:", error);
     } finally {
-      // Chỉ tắt loading sau khi đã cố gắng lấy Role
+      clearTimeout(roleTimeout);
       setLoading(false);
     }
   };
