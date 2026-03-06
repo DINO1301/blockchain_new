@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   
   // Dùng ref để kiểm soát việc nạp Role (tránh nạp lặp lại gây lỗi Lock)
+  const isAuthProcessing = useRef(false);
   const currentSessionUserId = useRef(null);
 
   // 1. Đăng ký tài khoản mới
@@ -87,19 +88,40 @@ export const AuthProvider = ({ children }) => {
       if (!mounted) return;
       
       console.log("Auth Event:", event);
-      clearTimeout(globalTimeout); // Có tín hiệu là xóa bộ đếm an toàn ngay
       
       if (session) {
-        // Chỉ nạp Role nếu là User mới hoặc sự kiện SIGNED_IN thực sự
-        if (currentSessionUserId.current !== session.user.id || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        // CƠ CHẾ GUARD: Nếu đang xử lý hoặc session cũ trùng, chặn ngay
+        if (isAuthProcessing.current) {
+          console.log("⏳ Đang xử lý Auth, bỏ qua sự kiện lặp.");
+          return;
+        }
+
+        clearTimeout(globalTimeout);
+        
+        // Chỉ xử lý nếu có User mới hoặc sự kiện quan trọng
+        const isNewUser = currentSessionUserId.current !== session.user.id;
+        const isForceEvent = ['SIGNED_IN', 'INITIAL_SESSION', 'USER_UPDATED'].includes(event);
+
+        if (isNewUser || isForceEvent) {
+          isAuthProcessing.current = true;
           currentSessionUserId.current = session.user.id;
-          await handleUserSession(session.user);
+          
+          // Nghỉ 100ms để khóa trình duyệt ổn định (Tránh Lock broken)
+          setTimeout(async () => {
+            try {
+              await handleUserSession(session.user);
+            } finally {
+              isAuthProcessing.current = false;
+            }
+          }, 100);
         }
       } else {
+        isAuthProcessing.current = false;
         currentSessionUserId.current = null;
         setUser(null);
         setRole(null);
         setLoading(false);
+        clearTimeout(globalTimeout);
       }
     });
 
