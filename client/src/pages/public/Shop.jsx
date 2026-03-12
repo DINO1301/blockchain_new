@@ -95,7 +95,7 @@ const Shop = () => {
       {/* Banner Quảng Cáo */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 mb-6 text-white flex flex-col md:flex-row items-center justify-between shadow-lg relative overflow-hidden">
         <div className="relative z-10">
-          <h1 className="text-3xl font-bold mb-2">Nhà Thuốc Chính Hãng MedTrack</h1>
+          <h1 className="text-3xl font-bold mb-2">Nhà Thuốc Chính Hãng MediTrack</h1>
           <p className="text-blue-100 opacity-90">Cam kết thuốc thật 100% - Truy xuất nguồn gốc bằng Blockchain</p>
         </div>
         <div className="mt-6 md:mt-0 relative z-10 flex gap-3">

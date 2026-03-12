@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { Web3Context } from './context/Web3Context';
 import { useAuth } from './context/AuthContext';
 import { useCart } from './context/CartContext';
@@ -18,6 +18,7 @@ import Product from './pages/public/Product';
 
 // PRIVATE (SPECIAL ACCESS)
 import AdminDashboard from './pages/admin/AdminDashboard';
+import QualityControl from './pages/admin/QualityControl';
 import Inventory from './pages/admin/Inventory';
 import ProductManager from './pages/admin/ProductManager';
 import ProductList from './pages/admin/ProductList';
@@ -54,11 +55,7 @@ function App() {
   const { user, role, logout } = useAuth(); // Lấy thông tin user từ Supabase
   const { totalItems } = useCart();
   const navigate = useNavigate();
-  const location = useLocation();
   const ADMIN_EMAIL = 'nguyenhieu@gmail.com';
-
-  const navClass = (path) =>
-    `nav-link text-sm font-medium whitespace-nowrap ${location.pathname === path ? 'active-nav text-brand-navy' : 'text-brand-navy hover:text-blue-600 transition-colors'}`;
 
   const handleLogout = async () => {
     try {
@@ -76,33 +73,34 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-lightBlue font-sans text-brand-navy">
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
       
       {/* HEADER WEB2 (Supabase Auth) */}
-      <header className="glass-card border-b border-brand-navy/10 bg-white/70 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between text-brand-navy">
-          <Link to="/" className="flex items-center gap-6">
-            <span className="h-8 w-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold">M</span>
-            <span className="font-heading font-extrabold text-xl tracking-wider">MedTrack</span>
+      <header className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <span className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-white font-bold">M</span>
+            <span className="font-bold text-xl tracking-tight text-primary">MediTrack</span>
           </Link>
           {/* Navigation items */}
-          <div className="hidden md:flex items-center space-x-8 md:ml-12">
-            <Link to="/" className={navClass('/')}>Trang chủ</Link>
-            <Link to="/shop" className={navClass('/shop')}>Cửa hàng</Link>
-            <Link to="/tracking" className={navClass('/tracking')}>Tra cứu</Link>
-            <Link to="/orders" className={navClass('/orders')}>Đơn hàng</Link>
+          <div className="hidden md:flex space-x-8">
+            <Link to="/" className="text-gray-500 hover:text-gray-900 font-normal">Trang chủ</Link>
+            <Link to="/shop" className="text-gray-500 hover:text-gray-900 font-normal">Shop</Link>
+            <Link to="/tracking" className="text-gray-500 hover:text-gray-900 font-normal">Tra cứu</Link>
+            <Link to="/orders" className="text-gray-500 hover:text-gray-900 font-normal">Đơn hàng</Link>
             {/* Chỉ hiện menu Admin nếu role là admin */}
             {user && role === "admin" && (
               <>
-                <Link to="/admin/dashboard" className={navClass('/admin/dashboard')}>Sản xuất</Link>
-                <Link to="/admin/inventory" className={navClass('/admin/inventory')}>Kho hàng</Link>
-                <Link to="/admin/products" className={navClass('/admin/products')}>Sản phẩm</Link>
+                <Link to="/admin/dashboard" className="text-gray-500 hover:text-gray-900 font-normal">Sản xuất</Link>
+                <Link to="/admin/inventory" className="text-gray-500 hover:text-gray-900 font-normal">Kho hàng</Link>
+                <Link to="/admin/qc" className="text-gray-500 hover:text-gray-900 font-normal">QC</Link>
+                <Link to="/admin/products" className="text-gray-500 hover:text-indigo-600 font-normal">Sản phẩm</Link>
               </>
             )}
           </div>
           {/* User Section */}
           <div className="flex items-center gap-4">
-            <Link to="/cart" className="relative p-2 text-brand-navy hover:text-blue-600 transition">
+            <Link to="/cart" className="relative p-2 text-gray-600 hover:text-primary transition">
               <ShoppingCart size={24} />
               {totalItems > 0 && (
                 <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
@@ -116,31 +114,28 @@ function App() {
                  Wallet: {currentAccount.slice(0,4)}...{currentAccount.slice(-4)}
                </span>
             ) : (user ?
-               <button onClick={connectWallet} className="text-xs text-blue-600 hover:text-blue-800 hover:underline">
+               <button onClick={connectWallet} className="text-xs text-primary hover:underline">
                  Liên kết Ví
                </button> : <></>
             )}
 
             {/* Khu vực User (Web2) */}
             {user ? (
-              <div className="flex items-center gap-3 pl-4 border-l border-blue-200">
+              <div className="flex items-center gap-3 pl-4 border-l">
                 <div className="text-right hidden sm:block">
-                  <p className="text-sm font-bold text-brand-navy">{user.full_name || user.email}</p>
-                  <div className="flex items-center gap-2 justify-end">
-                    {user.email === ADMIN_EMAIL ? (
+                  <p className="text-sm font-bold text-gray-800">{user.full_name || user.email}</p>
+                  <p className="text-xs text-gray-500 uppercase flex items-center gap-2 justify-end">
+                    <span>{role || 'User'}</span>
+                    {user.email === ADMIN_EMAIL && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                        ADMIN
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
-                        {(role || 'USER').toUpperCase()}
+                        Admin on-chain
                       </span>
                     )}
-                  </div>
+                  </p>
                 </div>
                 <button 
                   onClick={handleLogout}
-                  className="bg-blue-600/10 hover:bg-blue-600/20 text-brand-navy px-3 py-1.5 rounded text-sm transition border border-blue-200"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded text-sm transition"
                 >
                   Đăng xuất
                 </button>
@@ -148,7 +143,7 @@ function App() {
             ) : (
               <Link 
                 to="/login"
-                className="bg-blue-600/10 hover:bg-blue-600/20 text-brand-navy px-5 py-2 rounded-lg text-sm font-bold transition border border-blue-200"
+                className="bg-primary hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-bold transition shadow-sm"
               >
                 Đăng nhập
               </Link>
@@ -179,6 +174,11 @@ function App() {
             </ProtectedRoute>
           } />
 
+          <Route path="/admin/qc" element={
+            <ProtectedRoute allowedRoles={['lab', 'admin']}>
+              <QualityControl />
+            </ProtectedRoute>
+          } />
           <Route path="/profile" element={
             <ProtectedRoute allowedRoles={['user', 'admin', 'lab']}>
               <Profile />

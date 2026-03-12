@@ -36,8 +36,8 @@ const Home = () => {
               </h1>
               
               <p className="text-lg text-blue-700/80 max-w-lg leading-relaxed">
-                MedTrack ứng dụng công nghệ Blockchain để chống thuốc giả.
-                Theo dõi hành trình dược phẩm từ nhà máy sản xuất đến tận tay người tiêu dùng.
+                MedTrack ứng dụng công nghệ Blockchain để chống thuốc giả. 
+                Theo dõi hành trình viên thuốc từ nhà máy sản xuất đến tận tay người tiêu dùng.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
