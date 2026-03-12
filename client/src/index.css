@@ -4,7 +4,7 @@
 
 /* Thêm một chút style cơ bản */
 body {
-  background-color: #f6f8fb; /* Màu nền cũ của bạn */
+  background: linear-gradient(180deg, #eaf2ff 0%, #d6e6ff 100%);
   color: #0d141b;
   font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
@@ -14,3 +14,21 @@ body {
 .font-heading {
   font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
+
+.bg-brand-deepBlue { background-color: #051124; }
+.bg-brand-navy { background-color: #0a192f; }
+.text-brand-navy { color: #0a192f; }
+.bg-brand-lightBlue { background: linear-gradient(180deg, #eaf2ff 0%, #d6e6ff 100%); }
+.glass-card { background: rgba(255,255,255,0.08); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+.glow-text { text-shadow: 0 0 10px rgba(59,130,246,0.4), 0 0 20px rgba(59,130,246,0.35), 0 0 35px rgba(34,211,238,0.3); }
+@keyframes float { 0% { transform: translateY(0); } 50% { transform: translateY(-20px); } 100% { transform: translateY(0); } }
+.animate-float { animation: float 6s ease-in-out infinite; }
+
+.nav-link { position: relative; transition: color .3s ease; }
+.nav-link::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: #60a5fa; box-shadow: 0 0 10px #60a5fa, 0 0 5px #60a5fa; transition: width .3s ease; }
+.nav-link:hover::after, .active-nav::after { width: 100%; }
+.active-nav { color: #1e40af !important; }
+
+.text-balance { text-wrap: balance; }
+.clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }

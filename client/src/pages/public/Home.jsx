@@ -3,10 +3,10 @@ import { ShieldCheck, Search, ShoppingCart, Activity, Database, Lock } from 'luc
 
 const Home = () => {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-brand-lightBlue">
       
       {/* --- HERO SECTION --- */}
-      <div className="relative text-white overflow-hidden bg-[radial-gradient(circle_at_70%_30%,#1e3a8a_0%,#0a192f_100%)]">
+      <div className="relative text-brand-navy overflow-hidden bg-brand-lightBlue">
         
         {/* Họa tiết nền (Background Pattern) */}
         <div className="absolute inset-0 opacity-10">
@@ -20,7 +20,7 @@ const Home = () => {
             {/* Cột Trái: Text giới thiệu */}
             <div className="md:w-1/2 space-y-6">
               {/* Badge: Huy hiệu nổi bật */}
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-sm font-medium backdrop-blur-sm animate-fade-in-up">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 border border-blue-200 text-blue-700 text-sm font-medium backdrop-blur-sm animate-fade-in-up">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -28,29 +28,29 @@ const Home = () => {
                 Hệ thống vận hành trên Sepolia Testnet
               </div>
 
-              <h1 className="text-4xl md:text-6xl font-extrabold leading-tight tracking-tight font-heading">
-                Minh bạch nguồn gốc <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-cyan-200">
+              <h1 className="text-5xl md:text-7xl font-heading font-extrabold tracking-tight leading-tight">
+                <span className="block whitespace-nowrap">Minh bạch nguồn gốc</span>
+                <span className="block mt-2 whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-400 glow-text">
                   Dược phẩm & Y tế
                 </span>
               </h1>
               
-              <p className="text-lg text-blue-100/80 max-w-lg leading-relaxed">
-                MediTrack ứng dụng công nghệ Blockchain để chống thuốc giả. 
-                Theo dõi hành trình viên thuốc từ nhà máy sản xuất đến tận tay người tiêu dùng.
+              <p className="text-lg text-blue-700/80 max-w-lg leading-relaxed">
+                MedTrack ứng dụng công nghệ Blockchain để chống thuốc giả.
+                Theo dõi hành trình dược phẩm từ nhà máy sản xuất đến tận tay người tiêu dùng.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Link to="/shop" className="px-8 py-4 bg-white text-indigo-900 rounded-xl font-bold hover:bg-blue-50 transition shadow-lg flex items-center justify-center gap-2">
                   <ShoppingCart size={20} /> Mua Thuốc Ngay
                 </Link>
-                <Link to="/tracking" className="px-8 py-4 bg-indigo-700/50 border border-indigo-500/50 text-white rounded-xl font-bold hover:bg-indigo-700 transition flex items-center justify-center gap-2 backdrop-blur-sm">
+                <Link to="/tracking" className="px-8 py-4 bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl font-bold hover:bg-indigo-200 transition flex items-center justify-center gap-2">
                   <Search size={20} /> Tra Cứu QR
                 </Link>
               </div>
 
               {/* Stats nhỏ */}
-              <div className="pt-8 flex items-center gap-8 border-t border-white/10 mt-8">
+              <div className="pt-8 flex items-center gap-8 border-t border-blue-200 mt-8">
                 <div>
                   <h4 className="text-2xl font-bold">100%</h4>
                   <p className="text-xs text-blue-200 uppercase tracking-wider">Chính hãng</p>
@@ -68,7 +68,7 @@ const Home = () => {
 
             {/* Cột Phải: Hình ảnh minh họa (Abstract) */}
             <div className="md:w-1/2 relative hidden md:block">
-              <div className="relative z-10 bg-white/5 backdrop-blur-lg border border-white/10 p-8 rounded-[2rem] shadow-2xl transform rotate-3 hover:rotate-0 transition duration-500">
+              <div className="relative z-10 glass-card p-8 rounded-[2rem] shadow-2xl transform rotate-3 hover:rotate-0 transition duration-500 animate-float">
                 <div className="flex items-center gap-4 mb-6">
                     <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white">
                         <ShieldCheck size={28}/>
@@ -83,7 +83,7 @@ const Home = () => {
                     <div className="h-2 bg-white/20 rounded w-full"></div>
                     <div className="h-2 bg-white/20 rounded w-5/6"></div>
                 </div>
-                <div className="mt-6 flex justify-between items-center text-sm text-gray-300 font-mono">
+                <div className="mt-6 flex justify-between items-center text-sm text-blue-700 font-mono">
                     <span>TxHash: 0x8a7...f9c</span>
                     <span className="text-green-400">Confirmed</span>
                 </div>
@@ -91,6 +91,12 @@ const Home = () => {
 
               {/* Card bay bay phía sau */}
               <div className="absolute top-10 -right-10 w-64 bg-blue-600/30 p-6 rounded-2xl shadow-xl -z-10 opacity-80 transform -rotate-6"></div>
+
+              <div className="absolute -top-20 -right-20 w-[600px] h-[600px] opacity-20 pointer-events-none">
+                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M44.7,-76.4C58.1,-69.2,69.2,-58.1,76.4,-44.7C83.7,-31.3,87,-15.7,85.1,-0.1C83.1,15.5,75.9,31,66.6,43.5C57.3,56,45.8,65.5,32.7,71.4C19.6,77.3,4.8,79.5,-10,77.8C-24.8,76.1,-39.6,70.5,-52.1,61.1C-64.6,51.7,-74.8,38.5,-79.8,23.7C-84.8,8.9,-84.6,-7.5,-79.5,-22.3C-74.4,-37.1,-64.4,-50.3,-51.7,-57.8C-39,-65.3,-23.5,-67.1,-8.6,-73.4C6.2,-79.6,18.7,-90.4,31.3,-91.9C43.9,-93.4,56.5,-85.7,44.7,-76.4Z" fill="#00f2ff" transform="translate(100 100)"></path>
+                </svg>
+              </div>
             </div>
           </div>
         </div>
@@ -99,7 +105,7 @@ const Home = () => {
       {/* --- FEATURES SECTION --- */}
       <div className="max-w-7xl mx-auto px-6 py-24">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4 font-heading">Tại sao chọn MediTrack?</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4 font-heading">Tại sao chọn MedTrack?</h2>
           <p className="text-gray-500 max-w-2xl mx-auto">
             Giải pháp kết hợp sức mạnh của Web2 (Thương mại điện tử) và Web3 (Blockchain) để giải quyết bài toán niềm tin.
           </p>
@@ -142,26 +148,40 @@ const Home = () => {
       </div>
 
       {/* --- CTA SECTION (Kêu gọi hành động) --- */}
-      <div className="bg-gray-900 py-20 text-center text-white relative overflow-hidden">
+      <div className="bg-brand-lightBlue py-20 text-center text-brand-navy relative overflow-hidden">
         <div className="relative z-10 max-w-3xl mx-auto px-6">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Sẵn sàng trải nghiệm công nghệ mới?</h2>
-            <p className="text-gray-400 mb-8 text-lg">
+            <p className="text-blue-700 mb-8 text-lg">
                 Tham gia cùng hàng ngàn người dùng đang bảo vệ sức khỏe của mình bằng công nghệ Blockchain.
             </p>
             <div className="flex justify-center gap-4">
-                <Link to="/register" className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition">
-                    Đăng ký miễn phí
-                </Link>
-                <Link to="/shop" className="px-8 py-3 bg-transparent border border-gray-600 hover:bg-gray-800 text-white rounded-lg font-bold transition">
+                <Link to="/shop" className="px-8 py-3 bg-transparent border border-blue-600 hover:bg-blue-50 text-brand-navy rounded-lg font-bold transition">
                     Dạo quanh cửa hàng
                 </Link>
             </div>
         </div>
         
         {/* Abstract Circles Background */}
-        <div className="absolute top-0 left-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20"></div>
-        <div className="absolute bottom-0 right-0 w-64 h-64 bg-indigo-600 rounded-full blur-[100px] opacity-20"></div>
+        <div className="absolute top-0 left-0 w-64 h-64 bg-blue-300 rounded-full blur-[100px] opacity-20"></div>
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-indigo-300 rounded-full blur-[100px] opacity-20"></div>
       </div>
+
+      {/* FOOTER */}
+      <footer className="bg-brand-lightBlue border-t border-blue-200 py-12 text-brand-navy">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between items-center space-y-6 md:space-y-0">
+            <div className="flex items-center space-x-3">
+              <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-[10px] font-bold">M</div>
+              <p className="text-sm font-medium"><span className="font-bold">MedTrack</span> <span className="text-blue-700 ml-2">© 2024. All rights reserved.</span></p>
+            </div>
+            <div className="flex space-x-8 text-sm text-blue-700">
+              <a href="#" className="hover:text-blue-900 transition-colors">Điều khoản</a>
+              <a href="#" className="hover:text-blue-900 transition-colors">Bảo mật</a>
+              <a href="#" className="hover:text-blue-900 transition-colors">Liên hệ</a>
+            </div>
+          </div>
+        </div>
+      </footer>
 
     </div>
   );

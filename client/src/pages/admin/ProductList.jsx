@@ -197,7 +197,6 @@ const ProductList = () => {
   const [allImages, setAllImages] = useState([]);
   const [allDocs, setAllDocs] = useState([]);
   const [allQrs, setAllQrs] = useState([]);
-  const [dragIndex, setDragIndex] = useState(null);
 
   // Hàm xử lý upload file lên Supabase Storage (Hỗ trợ nhiều file)
   const handleFileUpload = async (event, field) => {
@@ -247,21 +246,23 @@ const ProductList = () => {
       const publicUrls = await Promise.all(uploadPromises);
       const joinedUrls = publicUrls.join(', ');
 
-      // Cập nhật vào form tương ứng
-      const targetField = field === 'main' ? 'imageUrl' : 
-                         field === 'extra' ? 'imageUrlsText' : 
-                         field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
-      
-      setForm(prev => ({ ...prev, [targetField]: prev[targetField] ? `${prev[targetField]}, ${joinedUrls}` : joinedUrls }));
-
       if (field === 'main') {
-        const prevArr = [
-          ...(form.imageUrl ? form.imageUrl.split(',').map(u=>u.trim()).filter(Boolean) : []),
-          ...(form.imageUrlsText ? form.imageUrlsText.split(',').map(u=>u.trim()).filter(Boolean) : [])
-        ];
-        const newArr = [...prevArr, ...publicUrls];
-        setAllImages(newArr);
-      } else if (field === 'docs') {
+        const newArr = [...(allImages || []), ...publicUrls].map(u => u.trim()).filter(Boolean);
+        const uniqueArr = Array.from(new Set(newArr));
+        setAllImages(uniqueArr);
+        setForm(prev => ({ 
+          ...prev, 
+          imageUrl: uniqueArr[0] || '', 
+          imageUrlsText: uniqueArr.slice(1).join(', ') 
+        }));
+      } else {
+        // Cập nhật vào form tương ứng cho các field khác
+        const targetField = field === 'extra' ? 'imageUrlsText' : 
+                           field === 'docs' ? 'relatedDocsText' : 'relatedQRsText';
+        setForm(prev => ({ ...prev, [targetField]: prev[targetField] ? `${prev[targetField]}, ${joinedUrls}` : joinedUrls }));
+      }
+
+      if (field === 'docs') {
         const prevArr = (form.relatedDocsText || '').split(',').map(u=>u.trim()).filter(Boolean);
         const newArr = [...prevArr, ...publicUrls];
         setAllDocs(newArr);
@@ -338,6 +339,14 @@ const ProductList = () => {
       setSelectedIds(filteredProducts.map(p => p.id));
     }
   };
+  
+  // Phân trang: 9 sản phẩm mỗi trang (dạng bảng)
+  const [page, setPage] = useState(1);
+  const perPage = 9;
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / perPage));
+  const start = (page - 1) * perPage;
+  const visibleRows = filteredProducts.slice(start, start + perPage);
+  useEffect(() => { setPage(1); }, [searchTerm, filterCategory, products]);
 
   const exportToExcel = async () => {
     const dataToExport = products.filter(p => selectedIds.includes(p.id));
@@ -795,8 +804,13 @@ worksheet.getRow(6).height = 22;
           </select>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-gray-500 whitespace-nowrap">
-          <span>Hiển thị: <strong>{filteredProducts.length}</strong> sản phẩm</span>
+        <div className="flex items-center gap-3 text-sm text-gray-500 whitespace-nowrap">
+          <span>Hiển thị: <strong>{visibleRows.length}</strong> / {filteredProducts.length} sản phẩm</span>
+          <div className="flex items-center gap-2">
+            <button onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50" disabled={page===1}>←</button>
+            <span className="font-bold">Trang {page}/{totalPages}</span>
+            <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50" disabled={page===totalPages}>→</button>
+          </div>
         </div>
       </div>
 
@@ -839,7 +853,7 @@ worksheet.getRow(6).height = 22;
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map(p => (
+                visibleRows.map(p => (
                   <tr 
                     key={p.id} 
                     className={`hover:bg-blue-50/50 transition cursor-pointer ${selectedIds.includes(p.id) ? 'bg-blue-50' : ''}`}
@@ -893,6 +907,13 @@ worksheet.getRow(6).height = 22;
             </tbody>
           </table>
         </div>
+      </div>
+      
+      {/* Điều hướng trang dưới cùng */}
+      <div className="mt-6 flex items-center justify-center gap-2">
+        <button onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-4 py-2 rounded-lg border bg-white hover:bg-gray-50" disabled={page===1}>Trang trước</button>
+        <span className="text-sm font-bold">Trang {page}/{totalPages}</span>
+        <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} className="px-4 py-2 rounded-lg border bg-white hover:bg-gray-50" disabled={page===totalPages}>Trang sau</button>
       </div>
 
       {editing && (
@@ -1131,6 +1152,8 @@ worksheet.getRow(6).height = 22;
                         src={(Array.isArray(form.imageUrl) ? (form.imageUrl[0] || '') : String(form.imageUrl || '').split(',')[0]).trim()} 
                         alt="Preview" 
                         className="w-full h-full object-contain p-2" 
+                        referrerPolicy="no-referrer"
+                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/600x400?text=No+Image'; }}
                       />
                     ) : (
                       <div className="text-center">

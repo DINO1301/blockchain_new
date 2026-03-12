@@ -27,6 +27,8 @@ const Inventory = () => {
   const [deleting, setDeleting] = useState(false); // Thêm state cho xóa lô hàng
   const [isUploadingDocs, setIsUploadingDocs] = useState(false); // State cho nút upload file
   const [nameFilter, setNameFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const perPage = 6;
 
   const handleDocFileUpload = async (event) => {
     const files = Array.from(event.target.files);
@@ -394,7 +396,7 @@ const Inventory = () => {
       let existingDocs = [];
       try {
         existingDocs = await contract.getBatchDocuments(batchId);
-      } catch (e) {
+      } catch {
         console.log("Lô này chưa có giấy tờ cũ.");
       }
       
@@ -416,9 +418,13 @@ const Inventory = () => {
         throw new Error("Không có dữ liệu hợp lệ để cập nhật.");
       }
 
-      const tx = await contract.updateBatchDocuments(batchId, allUrls, {
-        gasLimit: 1000000 
-      });
+      try {
+        await contract.updateBatchDocuments.staticCall(batchId, allUrls);
+      } catch (err) {
+        const m = err?.reason || err?.shortMessage || err?.message || 'Giao dịch bị từ chối hoặc điều kiện không hợp lệ';
+        throw new Error(m);
+      }
+      const tx = await contract.updateBatchDocuments(batchId, allUrls);
       
       await tx.wait();
 
@@ -478,9 +484,28 @@ const Inventory = () => {
           <p className="text-gray-500">Kho hàng trống. Bạn chưa sở hữu lô thuốc nào.</p>
         </div>
       ) : (
+        <>
+        {(() => {
+          const filtered = myBatches.filter(b => !nameFilter || b.name.toLowerCase().includes(nameFilter.trim().toLowerCase()));
+          const total = filtered.length;
+          const totalPages = Math.max(1, Math.ceil(total / perPage));
+          const shown = Math.min(perPage, Math.max(0, total - (page - 1) * perPage));
+          return (
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm text-gray-600">
+            Hiển thị <strong>{shown}</strong> / {total} lô hàng
+          </span>
+          <div className="flex items-center gap-2">
+            <button onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50" disabled={page===1}>←</button>
+            <span className="text-sm font-bold">Trang {page}/{totalPages}</span>
+            <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50" disabled={page===totalPages}>→</button>
+          </div>
+        </div>);
+        })()}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {myBatches
             .filter(b => !nameFilter || b.name.toLowerCase().includes(nameFilter.trim().toLowerCase()))
+            .slice((page-1)*perPage, (page-1)*perPage + perPage)
             .map((batch) => (
             <div key={batch.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition flex flex-col h-full">
               <div className="flex justify-between items-start mb-4">
@@ -573,6 +598,18 @@ const Inventory = () => {
             </div>
           ))}
         </div>
+        {(() => {
+          const filtered = myBatches.filter(b => !nameFilter || b.name.toLowerCase().includes(nameFilter.trim().toLowerCase()));
+          const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+          return (
+            <div className="mt-8 flex items-center justify-center gap-2">
+              <button onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-4 py-2 rounded-lg border bg-white hover:bg-gray-50" disabled={page===1}>Trang trước</button>
+              <span className="text-sm font-bold">Trang {page}/{totalPages}</span>
+              <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} className="px-4 py-2 rounded-lg border bg-white hover:bg-gray-50" disabled={page===totalPages}>Trang sau</button>
+            </div>
+          );
+        })()}
+        </>
       )}
 
       {/* MODAL CHUYỂN HÀNG */}

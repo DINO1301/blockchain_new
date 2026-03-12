@@ -68,7 +68,7 @@ const Login = () => {
     }
   };
 
-  // Phát hiện link khôi phục (type=recovery) và chuẩn bị form đổi mật khẩu
+  // MedTrack Login Page Logic (If needed in future)
   useEffect(() => {
     const hash = window.location.hash || window.location.search;
     if (!hash) return;
@@ -126,7 +126,7 @@ const Login = () => {
         <div className="md:w-1/2 bg-primary p-10 text-white flex flex-col justify-center relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600 to-blue-900 opacity-50"></div>
           <div className="relative z-10">
-            <h2 className="text-4xl font-bold mb-4">MediTrack 2.0</h2>
+            <h2 className="text-4xl font-bold mb-4">MedTrack</h2>
             <p className="text-blue-100 text-lg mb-8">Hệ thống truy xuất nguồn gốc dược liệu minh bạch trên nền tảng Blockchain.</p>
             <ul className="space-y-4 text-sm opacity-90">
               <li className="flex gap-2"><Shield size={18}/> Bảo mật tuyệt đối</li>

@@ -1,2 +1,2 @@
-# Blockchain
-Dự án blockchain trong quản lí thuốc
+# MedTrack
+Dự án blockchain trong quản lí dược phẩm và y tế

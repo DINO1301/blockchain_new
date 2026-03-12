@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
-import { ShoppingCart, Clock, Pill, ShieldAlert, ChevronRight, FileText, X } from 'lucide-react';
+import { ShoppingCart, Clock, Pill, ShieldAlert, ChevronRight, FileText, X, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
 const sections = [
@@ -18,20 +18,6 @@ const Product = () => {
   const { addToCart } = useCart();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-  const ingredientsRef = useRef(null);
-  const usesRef = useRef(null);
-  const directionsRef = useRef(null);
-  const sideEffectsRef = useRef(null);
-  const precautionsRef = useRef(null);
-  const storageRef = useRef(null);
-  const sectionRefs = {
-    ingredients: ingredientsRef,
-    uses: usesRef,
-    directions: directionsRef,
-    side_effects: sideEffectsRef,
-    precautions: precautionsRef,
-    storage: storageRef
-  };
   const [activeKey, setActiveKey] = useState(sections[0].key);
   const [qty, setQty] = useState(1);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -89,8 +75,34 @@ const Product = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="grid lg:grid-cols-2 gap-8">
           <div>
-            <div className="bg-gray-50 rounded-xl border h-96 md:h-[28rem] flex items-center justify-center overflow-hidden">
+            <div className="bg-gray-50 rounded-xl border h-96 md:h-[28rem] flex items-center justify-center overflow-hidden relative">
               <img src={selectedImage || product.image_url} alt={product.name} className="w-full h-full object-contain p-2" />
+              <button
+                type="button"
+                aria-label="Prev image"
+                onClick={() => {
+                  const images = [...new Set([product.image_url, ...(product.image_urls || [])].filter(Boolean))];
+                  const idx = images.indexOf(selectedImage || product.image_url);
+                  const next = images[(idx - 1 + images.length) % images.length];
+                  setSelectedImage(next);
+                }}
+                className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-700 rounded-full p-2 shadow border"
+              >
+                <ChevronLeft size={18}/>
+              </button>
+              <button
+                type="button"
+                aria-label="Next image"
+                onClick={() => {
+                  const images = [...new Set([product.image_url, ...(product.image_urls || [])].filter(Boolean))];
+                  const idx = images.indexOf(selectedImage || product.image_url);
+                  const next = images[(idx + 1) % images.length];
+                  setSelectedImage(next);
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-700 rounded-full p-2 shadow border"
+              >
+                <ChevronRightIcon size={18}/>
+              </button>
             </div>
             {Array.isArray(product.image_urls) && product.image_urls.length > 0 && (
               <div className="mt-4 flex gap-3 overflow-x-auto">

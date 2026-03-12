@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract MediTrack {
+contract MedTrack {
     
     // --- 1. CẤU TRÚC DỮ LIỆU (DATA STRUCTURES) ---
 

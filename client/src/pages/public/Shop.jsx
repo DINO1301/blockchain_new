@@ -80,6 +80,14 @@ const Shop = () => {
   }, [products, searchTerm, selectedCategory, selectedSubCategory]);
 
   const currentCategoryObj = PRODUCT_CATEGORIES.find(c => c.name === selectedCategory);
+  
+  // Phân trang: 6 sản phẩm mỗi trang
+  const [page, setPage] = useState(1);
+  const perPage = 6;
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / perPage));
+  const start = (page - 1) * perPage;
+  const visibleProducts = filteredProducts.slice(start, start + perPage);
+  useEffect(() => { setPage(1); }, [searchTerm, selectedCategory, selectedSubCategory]);
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -87,7 +95,7 @@ const Shop = () => {
       {/* Banner Quảng Cáo */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 mb-6 text-white flex flex-col md:flex-row items-center justify-between shadow-lg relative overflow-hidden">
         <div className="relative z-10">
-          <h1 className="text-3xl font-bold mb-2">Nhà Thuốc Chính Hãng MediTrack</h1>
+          <h1 className="text-3xl font-bold mb-2">Nhà Thuốc Chính Hãng MedTrack</h1>
           <p className="text-blue-100 opacity-90">Cam kết thuốc thật 100% - Truy xuất nguồn gốc bằng Blockchain</p>
         </div>
         <div className="mt-6 md:mt-0 relative z-10 flex gap-3">
@@ -104,13 +112,13 @@ const Shop = () => {
       </div>
 
       {/* Thanh Tìm kiếm & Lọc chính */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 items-center sticky top-20 z-30">
+      <div className="glass-card bg-white/60 backdrop-blur-md p-4 rounded-2xl shadow-lg border border-white/30 mb-6 flex flex-col md:flex-row gap-4 items-center">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input 
             type="text" 
             placeholder="Tìm kiếm theo tên thuốc hoặc sản phẩm..." 
-            className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-primary outline-none transition"
+            className="w-full pl-12 pr-4 py-3 bg-white/60 border border-white/40 rounded-xl focus:ring-2 focus:ring-primary outline-none transition"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -126,8 +134,8 @@ const Shop = () => {
               }}
               className={`px-5 py-3 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-2 ${
                 selectedCategory === cat 
-                ? 'bg-gray-900 text-white shadow-md' 
-                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                ? 'bg-gray-900/90 text-white shadow-md' 
+                : 'bg-white/60 text-gray-700 hover:bg-white'
               }`}
             >
               {cat === 'Thuốc' && <Pill size={16}/>}
@@ -145,7 +153,7 @@ const Shop = () => {
         
         {/* Sidebar Danh mục con */}
         <aside className="space-y-6 hidden lg:block">
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm sticky top-44">
+          <div className="glass-card bg-white/60 backdrop-blur-md rounded-2xl border border-white/30 p-5 shadow-lg">
             <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg">
               <Filter size={18} className="text-primary"/> Danh mục con
             </h2>
@@ -153,7 +161,7 @@ const Shop = () => {
               <button
                 onClick={() => setSelectedSubCategory('')}
                 className={`w-full text-left px-4 py-2.5 rounded-xl transition flex items-center gap-3 text-sm font-medium ${
-                  !selectedSubCategory ? 'bg-primary text-white shadow-md shadow-blue-100' : 'text-gray-600 hover:bg-gray-50'
+                  !selectedSubCategory ? 'bg-primary text-white shadow-md shadow-blue-100' : 'text-gray-700 hover:bg-white'
                 }`}
               >
                 Tất cả {selectedCategory !== 'Tất cả' ? selectedCategory : ''}
@@ -166,7 +174,7 @@ const Shop = () => {
                     key={sub}
                     onClick={() => setSelectedSubCategory(sub)}
                     className={`w-full text-left px-4 py-2.5 rounded-xl transition flex items-center gap-3 text-sm font-medium ${
-                      selectedSubCategory === sub ? 'bg-primary text-white shadow-md shadow-blue-100' : 'text-gray-600 hover:bg-gray-50'
+                      selectedSubCategory === sub ? 'bg-primary text-white shadow-md shadow-blue-100' : 'text-gray-700 hover:bg-white'
                     }`}
                   >
                     <Icon size={16} className={selectedSubCategory === sub ? 'text-white' : 'text-gray-400'} />
@@ -187,10 +195,23 @@ const Shop = () => {
           {/* Label kết quả */}
           <div className="flex items-center justify-between mb-6">
             <p className="text-gray-500 font-medium">
-              Hiển thị <span className="text-gray-900 font-bold">{filteredProducts.length}</span> sản phẩm
+              Hiển thị <span className="text-gray-900 font-bold">{visibleProducts.length}</span> / {filteredProducts.length} sản phẩm
               {selectedCategory !== 'Tất cả' && <span> trong <span className="text-primary font-bold">{selectedCategory}</span></span>}
               {selectedSubCategory && <span> › <span className="text-primary font-bold">{selectedSubCategory}</span></span>}
             </p>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50"
+                disabled={page === 1}
+              >←</button>
+              <span className="text-sm font-bold">Trang {page}/{totalPages}</span>
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50"
+                disabled={page === totalPages}
+              >→</button>
+            </div>
           </div>
 
           {loading ? (
@@ -212,7 +233,7 @@ const Shop = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
+              {visibleProducts.map((product) => (
                 <div 
                   key={product.id} 
                   className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col group cursor-pointer"
@@ -229,6 +250,8 @@ const Shop = () => {
                         src={product.image_url} 
                         alt={product.name} 
                         className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/400x300?text=No+Image'; }}
                       />
                     </Link>
                     {/* Badge tồn kho */}
@@ -247,12 +270,12 @@ const Shop = () => {
                   <div className="p-5 flex-1 flex flex-col">
                     <div className="mb-2">
                        <p className="text-[10px] text-primary font-bold uppercase tracking-wider mb-1">{product.sub_category || 'Sản phẩm'}</p>
-                       <Link to={`/product/${product.id}`} className="hover:text-primary transition-colors">
-                        <h3 className="font-bold text-gray-800 text-lg line-clamp-2 min-h-[3.5rem] leading-tight">{product.name}</h3>
+                       <Link to={`/product/${product.id}`} className="hover:text-primary transition-colors" title={product.name}>
+                        <h3 className="font-bold text-gray-800 text-lg leading-tight break-words whitespace-normal">{product.name}</h3>
                       </Link>
                     </div>
                     
-                    <p className="text-gray-500 text-xs mb-5 line-clamp-2 flex-1">{product.description}</p>
+                    <p className="text-gray-500 text-xs mb-5 clamp-2 flex-1">{product.description}</p>
                     
                     <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
                       <div className="flex flex-col">
@@ -276,6 +299,23 @@ const Shop = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* Điều hướng trang dưới cùng */}
+          {!loading && filteredProducts.length > 0 && (
+            <div className="mt-8 flex items-center justify-center gap-2">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                className="px-4 py-2 rounded-lg border bg-white hover:bg-gray-50"
+                disabled={page === 1}
+              >Trang trước</button>
+              <span className="text-sm font-bold">Trang {page}/{totalPages}</span>
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                className="px-4 py-2 rounded-lg border bg-white hover:bg-gray-50"
+                disabled={page === totalPages}
+              >Trang sau</button>
             </div>
           )}
         </div>

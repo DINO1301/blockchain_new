@@ -361,7 +361,7 @@ export const CONTRACT_ABI = [
 						"type": "address"
 					}
 				],
-				"internalType": "struct MediTrack.TimelineEvent[]",
+				"internalType": "struct MedTrack.TimelineEvent[]",
 				"name": "",
 				"type": "tuple[]"
 			}
