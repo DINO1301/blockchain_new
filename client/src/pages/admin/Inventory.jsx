@@ -28,6 +28,23 @@ const Inventory = () => {
   const [isUploadingDocs, setIsUploadingDocs] = useState(false); // State cho nút upload file
   const [nameFilter, setNameFilter] = useState('');
 
+  // Phân trang: 6 lô hàng mỗi trang
+  const [page, setPage] = useState(1);
+  const perPage = 6;
+
+  const filteredBatches = myBatches.filter(b => 
+    !nameFilter || 
+    b.name.toLowerCase().includes(nameFilter.trim().toLowerCase()) ||
+    b.id.toString().includes(nameFilter.trim())
+  );
+  const totalPages = Math.max(1, Math.ceil(filteredBatches.length / perPage));
+  const start = (page - 1) * perPage;
+  const visibleBatches = filteredBatches.slice(start, start + perPage);
+
+  useEffect(() => {
+    setPage(1);
+  }, [nameFilter, myBatches]);
+
   const handleDocFileUpload = async (event) => {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
@@ -448,20 +465,25 @@ const Inventory = () => {
             <Package className="text-primary" /> Kho Hàng Của Tôi
           </h1>
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-80">
-            <input
-              type="text"
-              placeholder="Lọc theo tên lô..."
-              className="w-full pl-4 pr-10 py-2 bg-white border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition shadow-sm"
-              value={nameFilter}
-              onChange={(e) => setNameFilter(e.target.value)}
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">⌕</span>
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex gap-3 w-full md:w-auto">
+            <div className="relative flex-1 md:w-80">
+              <input
+                type="text"
+                placeholder="Lọc theo tên hoặc ID lô..."
+                className="w-full pl-4 pr-10 py-2 bg-white border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition shadow-sm"
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">⌕</span>
+            </div>
+            <button onClick={fetchMyInventory} className="text-sm text-primary hover:underline whitespace-nowrap">
+              Làm mới danh sách
+            </button>
           </div>
-          <button onClick={fetchMyInventory} className="text-sm text-primary hover:underline whitespace-nowrap">
-            Làm mới danh sách
-          </button>
+          <div className="text-[10px] text-gray-500 font-medium">
+            Hiển thị: <strong>{visibleBatches.length}</strong> / <strong>{filteredBatches.length}</strong> lô hàng (Trang {page}/{totalPages})
+          </div>
         </div>
       </div>
 
@@ -478,101 +500,120 @@ const Inventory = () => {
           <p className="text-gray-500">Kho hàng trống. Bạn chưa sở hữu lô thuốc nào.</p>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {myBatches
-            .filter(b => !nameFilter || b.name.toLowerCase().includes(nameFilter.trim().toLowerCase()))
-            .map((batch) => (
-            <div key={batch.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition flex flex-col h-full">
-              <div className="flex justify-between items-start mb-4">
-                <div className="bg-blue-50 text-primary font-bold px-3 py-1 rounded-md text-sm">
-                  ID: #{batch.id}
-                </div>
-                {batch.status === 3 ? (
-                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
-                    <CheckCircle2 size={12}/> Vận chuyển thành công
-                  </span>
-                ) : (
-                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
-                    Đang giữ hàng
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex-grow flex flex-col">
-                <div className="min-h-[4.5rem]">
-                  <h3 className="text-lg font-bold text-gray-800 mb-2 leading-tight">
-                    {batch.name}
-                  </h3>
+        <>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {visibleBatches.map((batch) => (
+              <div key={batch.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition flex flex-col h-full">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="bg-blue-50 text-primary font-bold px-3 py-1 rounded-md text-sm">
+                    ID: #{batch.id}
+                  </div>
+                  {batch.status === 3 ? (
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
+                      <CheckCircle2 size={12}/> Vận chuyển thành công
+                    </span>
+                  ) : (
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
+                      Đang giữ hàng
+                    </span>
+                  )}
                 </div>
                 
-                <div className="mt-auto pt-3 border-t border-gray-50 mb-4">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nơi sản xuất</span>
-                    <p className="text-base text-primary font-bold">{batch.manufacturer}</p>
+                <div className="flex-grow flex flex-col">
+                  <div className="min-h-[4.5rem]">
+                    <h3 className="text-lg font-bold text-gray-800 mb-2 leading-tight">
+                      {batch.name}
+                    </h3>
+                  </div>
+                  
+                  <div className="mt-auto pt-3 border-t border-gray-50 mb-4">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nơi sản xuất</span>
+                      <p className="text-base text-primary font-bold">{batch.manufacturer}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-              
-              <div className="flex flex-col gap-2 mt-4">
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => setQrBatch(batch)}
-                    className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 flex items-center justify-center gap-2 transition text-sm"
-                  >
-                    <QrCode size={18} /> Mã QR
-                  </button>
-
-                  <button 
-                    onClick={() => setSelectedBatch(batch)}
-                    className="flex-1 py-2.5 bg-white border border-primary text-primary font-medium rounded-lg hover:bg-blue-50 flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                    disabled={batch.status === 3}
-                  >
-                    <Truck size={18} /> Chuyển đi
-                  </button>
-                </div>
-
-                {batch.status !== 3 && (
-                  <>
-                    <button 
-                      onClick={() => openDocsModal(batch)}
-                      disabled={!batch.isOwnerOnChain}
-                      className={`w-full py-2.5 font-medium rounded-lg flex items-center justify-center gap-2 transition border text-sm ${
-                        batch.isOwnerOnChain 
-                        ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100' 
-                        : 'bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed'
-                      }`}
-                    >
-                      <FileText size={18} /> 
-                      {batch.isOwnerOnChain ? "Cập nhật giấy tờ" : "Không có quyền sửa"}
-                    </button>
-                    <button 
-                      onClick={() => setDeliveryBatch(batch)}
-                      className="w-full py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 transition text-sm"
-                    >
-                      <CheckCircle2 size={18} /> Kết thúc lộ trình
-                    </button>
-                  </>
-                )}
                 
-                {/* Nút Xóa lô hàng - Hiển thị cho cả status 3 */}
-                <button 
-                  onClick={() => handleDeleteBatch(batch)}
-                  disabled={deleting || !batch.isOwnerOnChain}
-                  className="w-full py-2.5 bg-red-50 text-red-600 border border-red-100 font-medium rounded-lg hover:bg-red-100 flex items-center justify-center gap-2 transition text-sm disabled:opacity-50"
-                >
-                  {deleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
-                  Xóa lô hàng
-                </button>
-                
-                {batch.status === 3 && (
-                  <div className="mt-2 flex items-center justify-center border border-dashed border-gray-200 rounded-lg bg-gray-50 text-gray-400 text-[10px] text-center px-4 py-2">
-                    Lô hàng này đã hoàn tất hành trình.
+                <div className="flex flex-col gap-2 mt-4">
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setQrBatch(batch)}
+                      className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 flex items-center justify-center gap-2 transition text-sm"
+                    >
+                      <QrCode size={18} /> Mã QR
+                    </button>
+
+                    <button 
+                      onClick={() => setSelectedBatch(batch)}
+                      className="flex-1 py-2.5 bg-white border border-primary text-primary font-medium rounded-lg hover:bg-blue-50 flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      disabled={batch.status === 3}
+                    >
+                      <Truck size={18} /> Chuyển đi
+                    </button>
                   </div>
-                )}
+
+                  {batch.status !== 3 && (
+                    <>
+                      <button 
+                        onClick={() => openDocsModal(batch)}
+                        disabled={!batch.isOwnerOnChain}
+                        className={`w-full py-2.5 font-medium rounded-lg flex items-center justify-center gap-2 transition border text-sm ${
+                          batch.isOwnerOnChain 
+                          ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100' 
+                          : 'bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed'
+                        }`}
+                      >
+                        <FileText size={18} /> 
+                        {batch.isOwnerOnChain ? "Cập nhật giấy tờ" : "Không có quyền sửa"}
+                      </button>
+                      <button 
+                        onClick={() => setDeliveryBatch(batch)}
+                        className="w-full py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 transition text-sm"
+                      >
+                        <CheckCircle2 size={18} /> Kết thúc lộ trình
+                      </button>
+                    </>
+                  )}
+                  
+                  {/* Nút Xóa lô hàng - Hiển thị cho cả status 3 */}
+                  <button 
+                    onClick={() => handleDeleteBatch(batch)}
+                    disabled={deleting || !batch.isOwnerOnChain}
+                    className="w-full py-2.5 bg-red-50 text-red-600 border border-red-100 font-medium rounded-lg hover:bg-red-100 flex items-center justify-center gap-2 transition text-sm disabled:opacity-50"
+                  >
+                    {deleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                    Xóa lô hàng
+                  </button>
+                  
+                  {batch.status === 3 && (
+                    <div className="mt-2 flex items-center justify-center border border-dashed border-gray-200 rounded-lg bg-gray-50 text-gray-400 text-[10px] text-center px-4 py-2">
+                      Lô hàng này đã hoàn tất hành trình.
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="mt-8 flex justify-center items-center gap-4">
+            <button 
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 bg-white border rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition shadow-sm"
+            >
+              Trước
+            </button>
+            <span className="text-sm font-bold text-gray-600">Trang {page} / {totalPages}</span>
+            <button 
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 bg-white border rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition shadow-sm"
+            >
+              Sau
+            </button>
+          </div>
+        </>
       )}
 
       {/* MODAL CHUYỂN HÀNG */}

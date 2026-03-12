@@ -199,6 +199,17 @@ const ProductList = () => {
   const [allQrs, setAllQrs] = useState([]);
   const [dragIndex, setDragIndex] = useState(null);
 
+  // Phân trang: 9 sản phẩm mỗi trang
+  const [page, setPage] = useState(1);
+  const perPage = 9;
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / perPage));
+  const start = (page - 1) * perPage;
+  const visibleProductsList = filteredProducts.slice(start, start + perPage);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, filterCategory]);
+
   // Hàm xử lý upload file lên Supabase Storage (Hỗ trợ nhiều file)
   const handleFileUpload = async (event, field) => {
     const files = Array.from(event.target.files);
@@ -209,10 +220,16 @@ const ProductList = () => {
     const allowedTypes = isDoc 
       ? ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
       : ['image/jpeg', 'image/png', 'image/webp'];
+    const allowedExtensions = isDoc
+      ? ['jpg', 'jpeg', 'png', 'webp', 'pdf']
+      : ['jpg', 'jpeg', 'png', 'webp'];
     
     const validFiles = files.filter(file => {
-      if (!allowedTypes.includes(file.type)) {
-        alert(`❌ File "${file.name}" không đúng định dạng.`);
+      const fileExt = file.name.split('.').pop().toLowerCase();
+      const isValidType = allowedTypes.includes(file.type) || allowedExtensions.includes(fileExt);
+      
+      if (!isValidType) {
+        alert(`❌ File "${file.name}" không đúng định dạng. Hỗ trợ: ${allowedExtensions.join(', ')}`);
         return false;
       }
       if (file.size > 5 * 1024 * 1024) {
@@ -636,14 +653,17 @@ worksheet.getRow(6).height = 22;
 
   const startEdit = (p) => {
     setEditing(p.id);
+    const mainImageUrl = p.image_url || '';
+    const otherImageUrls = Array.isArray(p.image_urls) ? p.image_urls.filter(url => url !== mainImageUrl) : [];
+    
     setForm({
       name: p.name || '',
       price: p.price ?? '',
       category: p.category || '',
       sub_category: p.sub_category || '',
       description: p.description || '',
-      imageUrl: p.image_url || '',
-      imageUrlsText: Array.isArray(p.image_urls) ? p.image_urls.join(', ') : '',
+      imageUrl: mainImageUrl,
+      imageUrlsText: otherImageUrls.join(', '),
       dosage_form: p.dosage_form || '',
       expiry_months: p.expiry_months ?? '',
       ingredients: p.ingredients || '',
@@ -655,11 +675,7 @@ worksheet.getRow(6).height = 22;
       relatedDocsText: Array.isArray(p.related_docs) ? p.related_docs.join(', ') : '',
       relatedQRsText: Array.isArray(p.related_qrs) ? p.related_qrs.join(', ') : ''
     });
-    const imgList = [
-      ...(p.image_url ? [p.image_url] : []),
-      ...(Array.isArray(p.image_urls) ? p.image_urls : [])
-    ].filter(Boolean);
-    setAllImages(imgList);
+    setAllImages(Array.isArray(p.image_urls) ? p.image_urls : []);
     setAllDocs(Array.isArray(p.related_docs) ? p.related_docs : []);
     setAllQrs(Array.isArray(p.related_qrs) ? p.related_qrs : []);
   };
@@ -796,7 +812,7 @@ worksheet.getRow(6).height = 22;
         </div>
 
         <div className="flex items-center gap-2 text-sm text-gray-500 whitespace-nowrap">
-          <span>Hiển thị: <strong>{filteredProducts.length}</strong> sản phẩm</span>
+          <span>Hiển thị: <strong>{visibleProductsList.length}</strong> / <strong>{filteredProducts.length}</strong> sản phẩm (Trang {page}/{totalPages})</span>
         </div>
       </div>
 
@@ -832,14 +848,14 @@ worksheet.getRow(6).height = 22;
                     </div>
                   </td>
                 </tr>
-              ) : filteredProducts.length === 0 ? (
+              ) : visibleProductsList.length === 0 ? (
                 <tr>
                   <td className="px-4 py-10 text-center text-gray-500" colSpan="6">
                     {searchTerm ? 'Không tìm thấy sản phẩm nào phù hợp' : 'Chưa có sản phẩm nào'}
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map(p => (
+                visibleProductsList.map(p => (
                   <tr 
                     key={p.id} 
                     className={`hover:bg-blue-50/50 transition cursor-pointer ${selectedIds.includes(p.id) ? 'bg-blue-50' : ''}`}
@@ -893,6 +909,27 @@ worksheet.getRow(6).height = 22;
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 0 && (
+          <div className="p-4 bg-indigo-50/50 border-t flex justify-center items-center gap-4">
+            <button 
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 bg-white border rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition shadow-sm"
+            >
+              Trước
+            </button>
+            <span className="text-sm font-bold text-gray-600">Trang {page} / {totalPages}</span>
+            <button 
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 bg-white border rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition shadow-sm"
+            >
+              Sau
+            </button>
+          </div>
+        )}
       </div>
 
       {editing && (

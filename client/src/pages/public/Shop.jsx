@@ -251,7 +251,7 @@ const Shop = () => {
                         alt={product.name} 
                         className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
                         referrerPolicy="no-referrer"
-                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/400x300?text=No+Image'; }}
+                        onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x300?text=No+Image'; }}
                       />
                     </Link>
                     {/* Badge tồn kho */}
@@ -268,14 +268,16 @@ const Shop = () => {
 
                   {/* Thông tin */}
                   <div className="p-5 flex-1 flex flex-col">
-                    <div className="mb-2">
+                    <div className="mb-2 h-[4.5rem]">
                        <p className="text-[10px] text-primary font-bold uppercase tracking-wider mb-1">{product.sub_category || 'Sản phẩm'}</p>
                        <Link to={`/product/${product.id}`} className="hover:text-primary transition-colors" title={product.name}>
-                        <h3 className="font-bold text-gray-800 text-lg leading-tight break-words whitespace-normal">{product.name}</h3>
+                        <h3 className="font-bold text-gray-800 text-base leading-tight break-words whitespace-normal line-clamp-2">{product.name}</h3>
                       </Link>
                     </div>
                     
-                    <p className="text-gray-500 text-xs mb-5 clamp-2 flex-1">{product.description}</p>
+                    <div className="h-[3.25rem] mb-5">
+                      <p className="text-gray-500 text-[11px] leading-relaxed line-clamp-3">{product.description}</p>
+                    </div>
                     
                     <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
                       <div className="flex flex-col">

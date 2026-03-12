@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
-import { ShoppingCart, Clock, Pill, ShieldAlert, ChevronRight, FileText, X } from 'lucide-react';
+import { ShoppingCart, Clock, Pill, ShieldAlert, ChevronRight, FileText, X, ChevronLeft } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
 const sections = [
@@ -36,6 +36,23 @@ const Product = () => {
   const [qty, setQty] = useState(1);
   const [selectedImage, setSelectedImage] = useState(null);
   const [showRelatedDocs, setShowRelatedDocs] = useState(false);
+
+  // Lấy danh sách ảnh không trùng lặp
+  const allImages = product ? [...new Set([product.image_url, ...(Array.isArray(product.image_urls) ? product.image_urls : [])].filter(Boolean))] : [];
+  
+  // Hàm chuyển ảnh tiếp theo
+  const nextImage = () => {
+    const currentIndex = allImages.indexOf(selectedImage);
+    const nextIndex = (currentIndex + 1) % allImages.length;
+    setSelectedImage(allImages[nextIndex]);
+  };
+
+  // Hàm chuyển ảnh trước đó
+  const prevImage = () => {
+    const currentIndex = allImages.indexOf(selectedImage);
+    const prevIndex = (currentIndex - 1 + allImages.length) % allImages.length;
+    setSelectedImage(allImages[prevIndex]);
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -89,17 +106,39 @@ const Product = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="grid lg:grid-cols-2 gap-8">
           <div>
-            <div className="bg-gray-50 rounded-xl border h-96 md:h-[28rem] flex items-center justify-center overflow-hidden">
-              <img src={selectedImage || product.image_url} alt={product.name} className="w-full h-full object-contain p-2" />
+            <div className="bg-gray-50 rounded-xl border h-96 md:h-[28rem] flex items-center justify-center overflow-hidden relative group">
+              <img 
+                src={selectedImage || product.image_url} 
+                alt={product.name} 
+                className="w-full h-full object-contain p-2"
+                onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x300?text=No+Image'; }}
+              />
+              
+              {allImages.length > 1 && (
+                <>
+                  <button 
+                    onClick={prevImage}
+                    className="absolute left-4 p-2 bg-white/80 hover:bg-white rounded-full shadow-md text-gray-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
+                  <button 
+                    onClick={nextImage}
+                    className="absolute right-4 p-2 bg-white/80 hover:bg-white rounded-full shadow-md text-gray-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <ChevronRight size={24} />
+                  </button>
+                </>
+              )}
             </div>
-            {Array.isArray(product.image_urls) && product.image_urls.length > 0 && (
-              <div className="mt-4 flex gap-3 overflow-x-auto">
-                {[...new Set([product.image_url, ...product.image_urls].filter(Boolean))].map((url, idx) => (
+            {allImages.length > 0 && (
+              <div className="mt-4 flex gap-3 overflow-x-auto no-scrollbar">
+                {allImages.map((url, idx) => (
                   <button
                     type="button"
                     key={idx}
                     onClick={() => setSelectedImage(url)}
-                    className={`w-20 h-20 border rounded overflow-hidden ${selectedImage === url ? 'ring-2 ring-primary' : ''}`}
+                    className={`w-20 h-20 border rounded-lg overflow-hidden shrink-0 transition ${selectedImage === url ? 'ring-2 ring-primary border-transparent' : 'hover:border-primary'}`}
                   >
                     <img src={url} alt={`thumb-${idx}`} className="w-full h-full object-cover" />
                   </button>

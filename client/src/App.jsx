@@ -72,70 +72,77 @@ function App() {
     }
   };
 
+  const navClass = (path) =>
+    `nav-link ${location.pathname === path ? 'active-nav' : ''}`;
+
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+    <div className="min-h-screen bg-brand-lightBlue font-sans text-brand-navy">
       
       {/* HEADER WEB2 (Supabase Auth) */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-white font-bold">M</span>
-            <span className="font-bold text-xl tracking-tight text-primary">MediTrack</span>
+      <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-blue-50">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-2 shrink-0">
+            <span className="h-8 w-8 bg-primary rounded flex items-center justify-center text-white font-bold">M</span>
+            <span className="font-heading font-extrabold text-xl tracking-tight text-primary">MediTrack</span>
           </Link>
-          {/* Navigation items */}
-          <div className="hidden md:flex space-x-8">
-            <Link to="/" className="text-gray-500 hover:text-gray-900 font-normal">Trang chủ</Link>
-            <Link to="/shop" className="text-gray-500 hover:text-gray-900 font-normal">Shop</Link>
-            <Link to="/tracking" className="text-gray-500 hover:text-gray-900 font-normal">Tra cứu</Link>
-            <Link to="/orders" className="text-gray-500 hover:text-gray-900 font-normal">Đơn hàng</Link>
-            {/* Chỉ hiện menu Admin nếu role là admin */}
+
+          {/* Navigation items - Sửa lại để nằm trên 1 dòng */}
+          <div className="hidden lg:flex items-center gap-6 overflow-x-auto no-scrollbar py-2">
+            <Link to="/" className={navClass('/')}>Trang chủ</Link>
+            <Link to="/shop" className={navClass('/shop')}>Shop</Link>
+            <Link to="/tracking" className={navClass('/tracking')}>Tra cứu</Link>
+            <Link to="/orders" className={navClass('/orders')}>Đơn hàng</Link>
+            
+            {/* Menu Admin */}
             {user && role === "admin" && (
-              <>
-                <Link to="/admin/dashboard" className="text-gray-500 hover:text-gray-900 font-normal">Sản xuất</Link>
-                <Link to="/admin/inventory" className="text-gray-500 hover:text-gray-900 font-normal">Kho hàng</Link>
-                <Link to="/admin/qc" className="text-gray-500 hover:text-gray-900 font-normal">QC</Link>
-                <Link to="/admin/products" className="text-gray-500 hover:text-indigo-600 font-normal">Sản phẩm</Link>
-              </>
+              <div className="flex items-center gap-6 pl-6 border-l border-gray-200">
+                <Link to="/admin/dashboard" className={navClass('/admin/dashboard')}>Sản xuất</Link>
+                <Link to="/admin/inventory" className={navClass('/admin/inventory')}>Kho hàng</Link>
+                <Link to="/admin/products" className={navClass('/admin/products')}>Sản phẩm</Link>
+              </div>
             )}
           </div>
+
           {/* User Section */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 shrink-0 ml-auto">
             <Link to="/cart" className="relative p-2 text-gray-600 hover:text-primary transition">
-              <ShoppingCart size={24} />
+              <ShoppingCart size={22} />
               {totalItems > 0 && (
-                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
+                <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
                   {totalItems}
                 </span>
               )}
             </Link>
-            {/* Nút Connect Wallet (Web3) - Để riêng một góc nhỏ */}
-            {currentAccount ? (
-               <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-mono border border-green-200">
-                 Wallet: {currentAccount.slice(0,4)}...{currentAccount.slice(-4)}
-               </span>
-            ) : (user ?
-               <button onClick={connectWallet} className="text-xs text-primary hover:underline">
-                 Liên kết Ví
-               </button> : <></>
-            )}
 
-            {/* Khu vực User (Web2) */}
+            {/* Wallet Section */}
+            {currentAccount ? (
+               <div className="hidden xl:flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-full font-mono text-xs border border-green-100">
+                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                 {currentAccount.slice(0,6)}...{currentAccount.slice(-4)}
+               </div>
+            ) : (user && (
+               <button onClick={connectWallet} className="text-xs font-bold text-primary hover:text-blue-700 hover:underline">
+                 Liên kết Ví
+               </button>
+            ))}
+
+            {/* User Auth Section */}
             {user ? (
-              <div className="flex items-center gap-3 pl-4 border-l">
-                <div className="text-right hidden sm:block">
+              <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+                <div className="text-right hidden xl:block leading-tight">
                   <p className="text-sm font-bold text-gray-800">{user.full_name || user.email}</p>
-                  <p className="text-xs text-gray-500 uppercase flex items-center gap-2 justify-end">
-                    <span>{role || 'User'}</span>
+                  <div className="flex items-center gap-1 justify-end">
                     {user.email === ADMIN_EMAIL && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 rounded uppercase border border-emerald-100">
                         Admin on-chain
                       </span>
                     )}
-                  </p>
+                    <span className="text-[10px] text-gray-500 font-bold uppercase">{role || 'User'}</span>
+                  </div>
                 </div>
                 <button 
                   onClick={handleLogout}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded text-sm transition"
+                  className="bg-gray-100/80 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold transition border border-gray-200"
                 >
                   Đăng xuất
                 </button>
@@ -174,11 +181,6 @@ function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="/admin/qc" element={
-            <ProtectedRoute allowedRoles={['lab', 'admin']}>
-              <QualityControl />
-            </ProtectedRoute>
-          } />
           <Route path="/profile" element={
             <ProtectedRoute allowedRoles={['user', 'admin', 'lab']}>
               <Profile />

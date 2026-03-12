@@ -9,9 +9,9 @@ const Home = () => {
       <div className="relative text-brand-navy overflow-hidden bg-brand-lightBlue">
         
         {/* Họa tiết nền (Background Pattern) */}
-        <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full mix-blend-overlay filter blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-400 rounded-full mix-blend-overlay filter blur-3xl translate-x-1/2 translate-y-1/2"></div>
+        <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-50 rounded-full mix-blend-multiply filter blur-3xl translate-x-1/2 translate-y-1/2"></div>
         </div>
 
         <div className="max-w-7xl mx-auto px-6 py-20 md:py-32 relative z-10">
@@ -30,13 +30,13 @@ const Home = () => {
 
               <h1 className="text-5xl md:text-7xl font-heading font-extrabold tracking-tight leading-tight">
                 <span className="block whitespace-nowrap">Minh bạch nguồn gốc</span>
-                <span className="block mt-2 whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-400 glow-text">
+                <span className="block mt-4 pb-2 whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-400 glow-text leading-[1.4]">
                   Dược phẩm & Y tế
                 </span>
               </h1>
               
               <p className="text-lg text-blue-700/80 max-w-lg leading-relaxed">
-                MedTrack ứng dụng công nghệ Blockchain để chống thuốc giả. 
+                MediTrack ứng dụng công nghệ Blockchain để chống thuốc giả. 
                 Theo dõi hành trình viên thuốc từ nhà máy sản xuất đến tận tay người tiêu dùng.
               </p>
 
@@ -103,46 +103,53 @@ const Home = () => {
       </div>
 
       {/* --- FEATURES SECTION --- */}
-      <div className="max-w-7xl mx-auto px-6 py-24">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4 font-heading">Tại sao chọn MedTrack?</h2>
-          <p className="text-gray-500 max-w-2xl mx-auto">
-            Giải pháp kết hợp sức mạnh của Web2 (Thương mại điện tử) và Web3 (Blockchain) để giải quyết bài toán niềm tin.
-          </p>
-        </div>
+      <div className="bg-white py-24 relative overflow-hidden">
+        {/* Họa tiết nền phụ cho section này */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2"></div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Feature 1 */}
-          <div className="p-8 rounded-2xl bg-gray-50 border border-gray-100 hover:shadow-lg transition group">
-            <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition">
-              <Database size={28} />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-3">Dữ liệu bất biến</h3>
-            <p className="text-gray-500 leading-relaxed">
-              Một khi thông tin lô thuốc được ghi lên Blockchain, không ai (kể cả Admin) có thể sửa đổi hoặc xóa bỏ.
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4 font-heading tracking-tight">Tại sao chọn MedTrack?</h2>
+            <div className="w-20 h-1.5 bg-primary mx-auto rounded-full mb-6"></div>
+            <p className="text-gray-500 max-w-2xl mx-auto text-lg leading-relaxed">
+              Giải pháp kết hợp sức mạnh của <span className="text-primary font-bold">Web2</span> (Thương mại điện tử) và <span className="text-indigo-600 font-bold">Web3</span> (Blockchain) để giải quyết bài toán niềm tin.
             </p>
           </div>
 
-          {/* Feature 2 */}
-          <div className="p-8 rounded-2xl bg-gray-50 border border-gray-100 hover:shadow-lg transition group">
-            <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition">
-              <Activity size={28} />
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Feature 1 */}
+            <div className="p-10 rounded-[2rem] bg-white border border-gray-100 hover:border-primary/30 hover:shadow-[0_20px_50px_rgba(19,128,236,0.15)] transition-all duration-500 group cursor-default">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-primary group-hover:text-white group-hover:rotate-[360deg] transition-all duration-700 shadow-sm">
+                <Database size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">Dữ liệu bất biến</h3>
+              <p className="text-gray-500 leading-relaxed">
+                Một khi thông tin lô thuốc được ghi lên Blockchain, không ai (kể cả Admin) có thể sửa đổi hoặc xóa bỏ.
+              </p>
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-3">Real-time Tracking</h3>
-            <p className="text-gray-500 leading-relaxed">
-              Cập nhật trạng thái lô thuốc theo thời gian thực. Từ nhà máy, qua vận chuyển, đến kho đại lý.
-            </p>
-          </div>
 
-          {/* Feature 3 */}
-          <div className="p-8 rounded-2xl bg-gray-50 border border-gray-100 hover:shadow-lg transition group">
-            <div className="w-14 h-14 bg-green-100 text-green-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition">
-              <Lock size={28} />
+            {/* Feature 2 */}
+            <div className="p-10 rounded-[2rem] bg-white border border-gray-100 hover:border-indigo-600/30 hover:shadow-[0_20px_50px_rgba(79,70,229,0.15)] transition-all duration-500 group cursor-default">
+              <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-indigo-600 group-hover:text-white group-hover:rotate-[360deg] transition-all duration-700 shadow-sm">
+                <Activity size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">Real-time Tracking</h3>
+              <p className="text-gray-500 leading-relaxed">
+                Cập nhật trạng thái lô thuốc theo thời gian thực. Từ nhà máy, qua vận chuyển, đến kho đại lý.
+              </p>
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-3">Chống hàng giả</h3>
-            <p className="text-gray-500 leading-relaxed">
-              Mỗi hộp thuốc đều có định danh duy nhất (QR Code) gắn liền với Smart Contract, ngăn chặn việc trà trộn hàng giả.
-            </p>
+
+            {/* Feature 3 */}
+            <div className="p-10 rounded-[2rem] bg-white border border-gray-100 hover:border-green-600/30 hover:shadow-[0_20px_50px_rgba(22,163,74,0.15)] transition-all duration-500 group cursor-default">
+              <div className="w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-green-600 group-hover:text-white group-hover:rotate-[360deg] transition-all duration-700 shadow-sm">
+                <Lock size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">Chống hàng giả</h3>
+              <p className="text-gray-500 leading-relaxed">
+                Mỗi hộp thuốc đều có định danh duy nhất (QR Code) gắn liền với Smart Contract, ngăn chặn việc trà trộn hàng giả.
+              </p>
+            </div>
           </div>
         </div>
       </div>

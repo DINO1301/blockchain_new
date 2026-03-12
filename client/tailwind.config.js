@@ -9,6 +9,8 @@ export default {
       colors: {
         primary: "#1380ec",
         secondary: "#0c5db4",
+        "brand-lightBlue": "#e1effe",
+        "brand-navy": "#0d141b",
       }
     },
   },
