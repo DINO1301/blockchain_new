@@ -125,35 +125,56 @@ const OrderHistory = () => {
                 <div className="p-4 border-t bg-white animate-in slide-in-from-top-2">
                   <h4 className="font-bold text-sm text-gray-700 mb-3 uppercase tracking-wide">Chi tiết nguồn gốc (Tracking)</h4>
                   
-                  <div className="space-y-3">
-                    {/* Duyệt qua từng sản phẩm được hệ thống FIFO tách ra */}
-                    {order.batch_details?.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-indigo-100 bg-indigo-50/50">
-                        <div>
-                          <p className="font-bold text-gray-800">{item.productName}</p>
-                          <p className="text-xs text-gray-500">Số lượng: <span className="font-bold">{item.quantityTaken}</span> hộp</p>
-                        </div>
-                        
-                        {/* LINK SANG TRANG TRACKING */}
-                        <div className="flex items-center gap-3">
-                            <div className="text-right">
-                                <span className="block text-[10px] text-gray-400 uppercase">Xuất xứ từ lô</span>
-                                <span className="font-mono font-bold text-indigo-600">Batch #{item.batchId}</span>
-                            </div>
-                            <Link 
-                                to={`/tracking?id=${item.batchId}`} // Truyền ID qua URL luôn cho tiện
-                                className="p-2 bg-white text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-600 hover:text-white transition"
-                                title="Xem nguồn gốc lô này"
-                            >
-                                <ExternalLink size={18} />
-                            </Link>
+                  <div className="space-y-4">
+                    {/* Nhóm theo sản phẩm để hiển thị gọn hơn */}
+                    {Object.values(
+                      (order.batch_details || []).reduce((acc, item) => {
+                        if (!acc[item.productId]) {
+                          acc[item.productId] = {
+                            productName: item.productName,
+                            totalQty: 0,
+                            batches: []
+                          };
+                        }
+                        acc[item.productId].totalQty += Number(item.quantityTaken);
+                        acc[item.productId].batches.push({
+                          id: item.batchId,
+                          qty: item.quantityTaken
+                        });
+                        return acc;
+                      }, {})
+                    ).map((group, pIdx) => (
+                      <div key={pIdx} className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/30">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div>
+                            <p className="font-bold text-gray-800 text-base">{group.productName}</p>
+                            <p className="text-sm text-gray-500">Tổng số lượng: <span className="font-bold text-indigo-600">{group.totalQty}</span> hộp</p>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-2 md:justify-end">
+                            {group.batches.map((batch, bIdx) => (
+                              <div key={bIdx} className="flex items-center gap-2 bg-white border border-indigo-200 px-3 py-1.5 rounded-lg shadow-sm">
+                                <div className="text-right">
+                                  <span className="block text-[9px] text-gray-400 uppercase leading-none">Lô hàng ({batch.qty} hộp)</span>
+                                  <span className="font-mono font-bold text-indigo-600 text-xs">#{batch.id}</span>
+                                </div>
+                                <Link 
+                                  to={`/tracking?id=${batch.id}`}
+                                  className="p-1.5 hover:bg-indigo-50 text-indigo-600 rounded-md transition"
+                                  title="Xem nguồn gốc lô này"
+                                >
+                                  <ExternalLink size={14} />
+                                </Link>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
 
                   {(!order.batch_details || order.batch_details.length === 0) && (
-                     <p className="text-sm text-gray-400 italic">Đơn hàng cũ, không có thông tin lô.</p>
+                     <p className="text-sm text-gray-400 italic text-center py-4">Đơn hàng cũ, không có thông tin lô.</p>
                   )}
                 </div>
               )}

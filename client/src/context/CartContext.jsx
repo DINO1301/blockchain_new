@@ -71,23 +71,25 @@ export const CartProvider = ({ children }) => {
     // Chưa login thì điều hướng về trang đăng nhập
     if (!user) {
       navigate('/login');
-      return; // Dừng hình, không thêm gì cả
+      return; 
     }
 
-    // Logic thêm hàng (như cũ)
+    // Đảm bảo số lượng là số nguyên dương hợp lệ và không quá lớn
+    const safeQty = Math.min(1000000, Math.max(1, Math.floor(Number(quantity) || 1)));
+
     let newItems;
     const existingItem = cartItems.find((item) => item.id === product.id);
     
     if (existingItem) {
       newItems = cartItems.map((item) =>
-        item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item
+        item.id === product.id ? { ...item, quantity: Math.min(1000000, item.quantity + safeQty) } : item
       );
     } else {
-      newItems = [...cartItems, { ...product, quantity: Math.max(1, quantity) }];
+      newItems = [...cartItems, { ...product, quantity: safeQty }];
     }
 
     setCartItems(newItems);
-    saveToCloud(newItems); // Lưu thẳng lên Cloud
+    saveToCloud(newItems);
   };
 
   const removeFromCart = (productId) => {
@@ -101,8 +103,9 @@ export const CartProvider = ({ children }) => {
     if (!user) return;
     const newItems = cartItems.map(item => {
       if (item.id === productId) {
-        const newQty = item.quantity + amount;
-        if (newQty < 1) return item;
+        // Đảm bảo không bị tràn số hoặc số âm
+        const change = Number(amount) || 0;
+        const newQty = Math.min(1000000, Math.max(1, item.quantity + change));
         return { ...item, quantity: newQty };
       }
       return item;

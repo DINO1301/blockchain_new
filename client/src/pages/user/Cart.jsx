@@ -160,7 +160,18 @@ const Cart = () => {
               >
                 <Minus size={14} />
               </button>
-              <span className="font-bold w-4 text-center text-sm">{item.quantity}</span>
+              <input 
+                type="text"
+                className="w-12 text-center bg-transparent font-bold text-sm outline-none"
+                value={item.quantity}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  const num = parseInt(val || 0);
+                  if (num >= 0) {
+                    updateQuantity(item.id, num - item.quantity);
+                  }
+                }}
+              />
               <button 
                 onClick={() => updateQuantity(item.id, 1)}
                 className="p-1 hover:bg-gray-200 rounded text-gray-600"
