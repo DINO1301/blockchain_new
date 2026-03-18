@@ -44,7 +44,13 @@ const Login = () => {
 
     } catch (err) {
       console.error(err);
-      setError("Thất bại: " + err.message);
+      let msg = err.message;
+      if (msg === 'User already registered') {
+        msg = "Email này đã được đăng ký. Vui lòng đăng nhập!";
+      } else if (msg === 'Invalid login credentials') {
+        msg = "Email hoặc mật khẩu không chính xác.";
+      }
+      setError("Thất bại: " + msg);
     } finally {
       setLoading(false);
     }
