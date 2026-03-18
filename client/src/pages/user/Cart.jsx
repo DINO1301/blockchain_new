@@ -149,35 +149,46 @@ const Cart = () => {
             <div className="flex-1">
               <h3 className="font-bold text-gray-800">{item.name}</h3>
               <p className="text-primary font-bold">{item.price.toLocaleString()} ₫</p>
+              <p className="text-[10px] text-gray-400">Kho còn: <span className="font-bold">{item.total_stock || 0}</span></p>
             </div>
 
             {/* Bộ chỉnh số lượng */}
-            <div className="flex items-center gap-3 bg-gray-50 px-3 py-1 rounded-lg border">
-              <button 
-                onClick={() => updateQuantity(item.id, -1)}
-                className="p-1 hover:bg-gray-200 rounded text-gray-600 disabled:opacity-50"
-                disabled={item.quantity <= 1}
-              >
-                <Minus size={14} />
-              </button>
-              <input 
-                type="text"
-                className="w-12 text-center bg-transparent font-bold text-sm outline-none"
-                value={item.quantity}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '');
-                  const num = parseInt(val || 0);
-                  if (num >= 0) {
-                    updateQuantity(item.id, num - item.quantity);
-                  }
-                }}
-              />
-              <button 
-                onClick={() => updateQuantity(item.id, 1)}
-                className="p-1 hover:bg-gray-200 rounded text-gray-600"
-              >
-                <Plus size={14} />
-              </button>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-3 bg-gray-50 px-3 py-1 rounded-lg border">
+                <button 
+                  onClick={() => updateQuantity(item.id, -1)}
+                  className="p-1 hover:bg-gray-200 rounded text-gray-600 disabled:opacity-50"
+                  disabled={item.quantity <= 1}
+                >
+                  <Minus size={14} />
+                </button>
+                <input 
+                  type="text"
+                  className="w-12 text-center bg-transparent font-bold text-sm outline-none"
+                  value={item.quantity}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    const num = parseInt(val || 0);
+                    const stock = Number(item.total_stock || 0);
+                    
+                    if (num > stock) {
+                      updateQuantity(item.id, stock - item.quantity);
+                    } else if (num >= 0) {
+                      updateQuantity(item.id, num - item.quantity);
+                    }
+                  }}
+                />
+                <button 
+                  onClick={() => updateQuantity(item.id, 1)}
+                  className="p-1 hover:bg-gray-200 rounded text-gray-600 disabled:opacity-50"
+                  disabled={item.quantity >= (item.total_stock || 0)}
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+              {item.quantity >= (item.total_stock || 0) && (
+                <span className="text-[9px] text-red-500 font-bold italic">Tối đa trong kho</span>
+              )}
             </div>
 
             <button 

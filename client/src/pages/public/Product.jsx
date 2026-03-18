@@ -157,6 +157,9 @@ const Product = () => {
                   <Clock size={16} /> HSD: {product.expiry_months} tháng
                 </span>
               ) : null}
+              <span className={`inline-flex items-center gap-1 text-sm px-2 py-1 rounded font-bold ${product.total_stock > 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
+                {product.total_stock > 0 ? `Còn: ${product.total_stock} hộp` : 'Hết hàng'}
+              </span>
             </div>
             {/* Thông tin nhanh: chỉ 3 mục chính */}
             <div className="mt-5 bg-gray-50 border rounded-2xl p-5 space-y-4">
@@ -242,32 +245,50 @@ const Product = () => {
             )}
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <div className="flex items-center bg-gray-50 border rounded-lg">
-                <button
-                  className="px-3 py-2 text-lg"
-                  onClick={() => setQty(q => Math.max(1, q - 1))}
-                >-</button>
-                <input
-                  type="number"
-                  min="1"
-                  className="w-16 text-center bg-transparent outline-none py-2"
-                  value={qty}
-                  onChange={e => {
-                    const v = parseInt(e.target.value || '1', 10);
-                    if (!isNaN(v)) setQty(Math.max(1, v));
-                  }}
-                />
-                <button
-                  className="px-3 py-2 text-lg"
-                  onClick={() => setQty(q => q + 1)}
-                >+</button>
-              </div>
-              <button
-                onClick={() => addToCart(product, qty)}
-                className="bg-primary hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-bold flex items-center gap-2"
-              >
-                <ShoppingCart size={20} /> Thêm vào giỏ
-              </button>
+              {product.total_stock > 0 ? (
+                <>
+                  <div className="flex items-center bg-gray-50 border rounded-lg">
+                    <button
+                      className="px-3 py-2 text-lg disabled:opacity-30"
+                      onClick={() => setQty(q => Math.max(1, q - 1))}
+                      disabled={qty <= 1}
+                    >-</button>
+                    <input
+                      type="number"
+                      min="1"
+                      max={product.total_stock}
+                      className="w-16 text-center bg-transparent outline-none py-2 font-bold"
+                      value={qty}
+                      onChange={e => {
+                        const v = parseInt(e.target.value || '1', 10);
+                        if (!isNaN(v)) {
+                          if (v > product.total_stock) {
+                            alert(`Số lượng tối đa hiện có là ${product.total_stock} hộp.`);
+                            setQty(product.total_stock);
+                          } else {
+                            setQty(Math.max(1, v));
+                          }
+                        }
+                      }}
+                    />
+                    <button
+                      className="px-3 py-2 text-lg disabled:opacity-30"
+                      onClick={() => setQty(q => Math.min(product.total_stock, q + 1))}
+                      disabled={qty >= product.total_stock}
+                    >+</button>
+                  </div>
+                  <button
+                    onClick={() => addToCart(product, qty)}
+                    className="bg-primary hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-bold flex items-center gap-2 active:scale-95 transition"
+                  >
+                    <ShoppingCart size={20} /> Thêm vào giỏ
+                  </button>
+                </>
+              ) : (
+                <div className="bg-red-50 text-red-600 px-6 py-3 rounded-lg font-bold border border-red-200 uppercase tracking-wide">
+                  Sản phẩm hiện đang hết hàng
+                </div>
+              )}
               <Link to="/shop" className="px-5 py-3 rounded-lg border hover:bg-gray-50">Quay lại Shop</Link>
             </div>
           </div>

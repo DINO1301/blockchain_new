@@ -74,18 +74,36 @@ export const CartProvider = ({ children }) => {
       return; 
     }
 
-    // Đảm bảo số lượng là số nguyên dương hợp lệ và không quá lớn
-    const safeQty = Math.min(1000000, Math.max(1, Math.floor(Number(quantity) || 1)));
+    const stock = Number(product.total_stock || 0);
+    if (stock <= 0) {
+      alert("Sản phẩm này hiện đang hết hàng!");
+      return;
+    }
 
+    // Đảm bảo số lượng là số nguyên dương hợp lệ và không quá tồn kho
+    const requestedQty = Math.max(1, Math.floor(Number(quantity) || 1));
+    
     let newItems;
     const existingItem = cartItems.find((item) => item.id === product.id);
     
     if (existingItem) {
-      newItems = cartItems.map((item) =>
-        item.id === product.id ? { ...item, quantity: Math.min(1000000, item.quantity + safeQty) } : item
-      );
+      const newQty = existingItem.quantity + requestedQty;
+      if (newQty > stock) {
+        alert(`Bạn chỉ có thể mua tối đa ${stock} sản phẩm này (Đã có ${existingItem.quantity} trong giỏ).`);
+        newItems = cartItems.map((item) =>
+          item.id === product.id ? { ...item, quantity: stock } : item
+        );
+      } else {
+        newItems = cartItems.map((item) =>
+          item.id === product.id ? { ...item, quantity: newQty } : item
+        );
+      }
     } else {
-      newItems = [...cartItems, { ...product, quantity: safeQty }];
+      const finalQty = Math.min(requestedQty, stock);
+      if (requestedQty > stock) {
+        alert(`Chỉ còn ${stock} sản phẩm trong kho.`);
+      }
+      newItems = [...cartItems, { ...product, quantity: finalQty }];
     }
 
     setCartItems(newItems);
@@ -103,9 +121,16 @@ export const CartProvider = ({ children }) => {
     if (!user) return;
     const newItems = cartItems.map(item => {
       if (item.id === productId) {
-        // Đảm bảo không bị tràn số hoặc số âm
+        const stock = Number(item.total_stock || 0);
         const change = Number(amount) || 0;
-        const newQty = Math.min(1000000, Math.max(1, item.quantity + change));
+        let newQty = item.quantity + change;
+        
+        if (newQty > stock) {
+          alert(`Số lượng vượt quá tồn kho (${stock} hộp)!`);
+          newQty = stock;
+        }
+        if (newQty < 1) newQty = 1;
+        
         return { ...item, quantity: newQty };
       }
       return item;
