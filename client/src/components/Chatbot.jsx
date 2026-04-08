@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { MessageCircle, X, Send, Bot, User, Loader2, Sparkles, ChevronRight } from 'lucide-react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Link } from 'react-router-dom';
 
 const Chatbot = () => {
@@ -13,8 +14,12 @@ const Chatbot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastSuggestions, setLastSuggestions] = useState([]);
   const scrollRef = useRef(null);
+  
+  const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GOOGLE_GEN_AI_KEY);
+  const model = genAI.getGenerativeModel({ model: "models/gemini-2.0-flash" });
 
   useEffect(() => {
+    handleSend();
     const fetchProducts = async () => {
       try {
         const { data, error } = await supabase
@@ -28,9 +33,6 @@ const Chatbot = () => {
       }
     };
     fetchProducts();
-  }, []);
-
-  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
@@ -38,154 +40,21 @@ const Chatbot = () => {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    const input = "Xin chào!";
+    try {
+      const result = await model.generateContent(input);
+      const response = await result.response;
+      const text = response.text();
 
-    const userMessage = input.trim();
-    setMessages(prev => [...prev, { id: Date.now(), type: 'user', text: userMessage }]);
-    setInput('');
-    setIsLoading(true);
-
-    setTimeout(() => {
-      processBotResponse(userMessage);
-    }, 800);
-  };
-
-  const processBotResponse = (query) => {
-    const lowerQuery = query.toLowerCase().trim();
-    
-    // 0. Xử lý các câu chào hỏi trước (để tránh Bot đi tìm kiếm thuốc cho từ "hi", "chào")
-    const greetings = ["hi", "hello", "chào", "xin chào", "hey", "alo"];
-    if (greetings.includes(lowerQuery)) {
-      setMessages(prev => [...prev, { 
-        id: Date.now(), 
-        type: 'bot', 
-        text: "Chào bạn! Rất vui được hỗ trợ. Bạn hãy mô tả triệu chứng hoặc nhập tên thuốc cần tìm để tôi tư vấn nhé." 
-      }]);
-      setIsLoading(false);
-      return;
-    }
-
-    // 1. Logic So sánh & Phân tích chi tiết (nếu đã có gợi ý trước đó)
-    const isComparisonRequest = lowerQuery.includes("nào tốt hơn") || 
-                               lowerQuery.includes("nào phù hợp hơn") || 
-                               lowerQuery.includes("khác nhau") ||
-                               lowerQuery.includes("trẻ em") || 
-                               lowerQuery.includes("người lớn") ||
-                               lowerQuery.includes("bé") ||
-                               lowerQuery.includes("nhỏ") ||
-                               lowerQuery.includes("công dụng") ||
-                               (lowerQuery.includes("cái này") && lastSuggestions.length > 0);
-
-    if (isComparisonRequest && lastSuggestions.length > 0) {
-      const isKidSearch = lowerQuery.includes("trẻ em") || lowerQuery.includes("bé") || lowerQuery.includes("nhỏ");
-      const isAdultSearch = lowerQuery.includes("người lớn") || lowerQuery.includes("lớn");
-
-      let comparisonResponse = isKidSearch ? "Đây là các loại thuốc dành cho trẻ nhỏ trong số các gợi ý vừa rồi:\n\n" : "Dưới đây là phân tích chi tiết để bạn chọn loại phù hợp nhất:\n\n";
+      // Cập nhật phản hồi từ Gemini
+      console.log(text);
       
-      let foundTarget = false;
-      lastSuggestions.forEach((p, index) => {
-        const name = p.name || "";
-        const uses = p.uses || "";
-        const desc = p.description || "";
-        
-        const isForKids = uses.toLowerCase().includes("trẻ em") || uses.toLowerCase().includes("bé") || desc.toLowerCase().includes("trẻ em") || name.toLowerCase().includes("bebe") || name.toLowerCase().includes("kid");
-        
-        if (isKidSearch && !isForKids) return; // Nếu đang tìm cho trẻ em mà thuốc này không phải thì bỏ qua
-        if (isAdultSearch && isForKids && !uses.toLowerCase().includes("người lớn")) return;
-
-        foundTarget = true;
-        const targetText = isForKids ? "Trẻ em" : "Người lớn/Cả hai";
-
-        comparisonResponse += `🔹 ${name} (${targetText}):\n`;
-        comparisonResponse += `   - Công dụng: ${uses}\n\n`;
-      });
-
-      if (!foundTarget) {
-        comparisonResponse = isKidSearch ? "Xin lỗi, trong số các thuốc vừa tìm thấy, tôi chưa thấy loại nào ghi rõ dành cho trẻ nhỏ. Bạn nên hỏi ý kiến bác sĩ trước khi cho bé dùng nhé." : "Tôi chưa tìm thấy thông tin phân loại cụ thể cho yêu cầu này.";
-      }
-
-      setMessages(prev => [...prev, { 
-        id: Date.now(), type: 'bot', text: comparisonResponse, suggestions: lastSuggestions 
-      }]);
+    } catch (error) {
+      console.error("Lỗi khi gọi Gemini API:", error);
+      // setHistory([...newHistory, { role: "bot", text: "Có lỗi xảy ra, thử lại sau nhé!" }]);
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    // 2. Logic Tìm kiếm từ khóa cải tiến
-    const stopWords = ["tôi", "đang", "bị", "các", "bệnh", "muốn", "tìm", "loại", "thuốc", "có", "không", "cho", "hỏi", "giúp", "với"];
-    const keywords = lowerQuery.split(/\s+/).filter(word => word.length > 2 && !stopWords.includes(word));
-
-    const matchedProducts = products.map(p => {
-      let score = 0;
-      const name = (p.name || "").toLowerCase();
-      const uses = (p.uses || "").toLowerCase();
-      const ingredients = (p.ingredients || "").toLowerCase();
-      
-      // A. Khớp cả cụm từ triệu chứng (Ưu tiên cao nhất)
-      // Ví dụ: "đau đầu", "đau họng", "ngứa da"
-      const symptomPhrases = [
-        "đau đầu", "nhức đầu", "đau họng", "viêm họng", "đau bụng", 
-        "đau răng", "đau lưng", "viêm mũi", "ngứa ngoài da", "dị ứng"
-      ];
-      symptomPhrases.forEach(phrase => {
-        if (lowerQuery.includes(phrase)) {
-          if (uses.includes(phrase) || uses.includes(phrase.replace(" ", ""))) score += 20; 
-          else if (name.includes(phrase)) score += 15;
-        }
-      });
-
-      // B. Khớp từng từ khóa riêng lẻ
-      keywords.forEach(kw => {
-        if (uses.includes(kw)) score += 5; // Tăng điểm khớp từ đơn
-        if (name.includes(kw)) score += 8; 
-        if (ingredients.includes(kw)) score += 3;
-      });
-
-      // C. Xử lý trường hợp "đau/viêm" nhưng không đúng bộ phận (Hình phạt nặng để tránh nhầm lẫn)
-      if (lowerQuery.includes("đầu") && !uses.includes("đầu") && !uses.includes("nhức") && !name.includes("đầu")) {
-        score = Math.max(0, score - 25); 
-      }
-      if (lowerQuery.includes("họng") && !uses.includes("họng") && !name.includes("họng")) {
-        score = Math.max(0, score - 25);
-      }
-      if (lowerQuery.includes("mũi") && !uses.includes("mũi") && !name.includes("mũi")) {
-        score = Math.max(0, score - 25);
-      }
-      if (lowerQuery.includes("da") && !uses.includes("da") && !name.includes("da")) {
-        score = Math.max(0, score - 25);
-      }
-
-      return { ...p, score };
-    })
-    .filter(p => p.score > 2) // Giảm ngưỡng điểm tối thiểu từ 5 xuống 2
-    .sort((a, b) => b.score - a.score);
-
-    let response = "";
-    let suggestedProducts = [];
-
-    if (matchedProducts.length > 0) {
-      const topMatch = matchedProducts[0];
-      if (topMatch.name.toLowerCase() === lowerQuery || topMatch.score >= 5) {
-        response = `Tôi đã tìm thấy sản phẩm "${topMatch.name}" phù hợp với yêu cầu của bạn:`;
-      } else {
-        response = `Dựa trên triệu chứng bạn mô tả, tôi tìm thấy ${matchedProducts.length} sản phẩm có thể hỗ trợ bạn:`;
-      }
-      suggestedProducts = matchedProducts.slice(0, 3);
-      setLastSuggestions(suggestedProducts);
-    } else {
-      if (lowerQuery.includes("chào") || lowerQuery.includes("hi") || lowerQuery.includes("hello")) {
-        response = "Chào bạn! Rất vui được hỗ trợ. Bạn hãy mô tả triệu chứng (ví dụ: 'đau đầu', 'ngứa ngoài da'...) hoặc tên thuốc bạn cần tìm nhé.";
-      } else if (lowerQuery.includes("cảm ơn") || lowerQuery.includes("thanks")) {
-        response = "Không có gì! Chúc bạn luôn mạnh khỏe. Nếu cần gì thêm cứ hỏi tôi nhé.";
-      } else {
-        response = "Xin lỗi, tôi chưa tìm thấy loại thuốc nào khớp với mô tả của bạn. Bạn có thể thử nhập từ khóa ngắn gọn hơn (ví dụ: 'ngứa', 'viêm mũi', 'canxi'...) hoặc liên hệ bác sĩ để được tư vấn chính xác nhất.";
-      }
-    }
-
-    setMessages(prev => [...prev, { 
-      id: Date.now(), type: 'bot', text: response, suggestions: suggestedProducts 
-    }]);
-    setIsLoading(false);
   };
 
   return (
