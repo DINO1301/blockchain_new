@@ -23,6 +23,7 @@ import Inventory from './pages/admin/Inventory';
 import ProductManager from './pages/admin/ProductManager';
 import ProductList from './pages/admin/ProductList';
 import Chatbot from './components/Chatbot';
+import Footer from './components/Footer';
 
 // Component bảo vệ (Chỉ cho phép Admin truy cập)
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -83,7 +84,10 @@ function App() {
     `block py-3 px-4 rounded-lg font-medium transition ${location.pathname === path ? 'bg-blue-50 text-primary' : 'text-gray-700 hover:bg-gray-50'}`;
 
   return (
-    <div className="min-h-screen bg-brand-lightBlue font-sans text-brand-navy">
+    <div 
+      className="flex flex-col min-h-screen bg-brand-lightBlue font-sans text-brand-navy"
+      style={{ minHeight: '100vh' }} // Đảm bảo tuyệt đối nó chiếm hết chiều cao màn hình
+    >
       
       {/* HEADER WEB2 (Supabase Auth) */}
       <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-blue-50">
@@ -239,7 +243,7 @@ function App() {
         )}
       </header>
 
-      <main className="py-10">
+      <main className="flex-grow pt-10 pb-24 min-h-[70vh]">
         <Routes>
           {/* Các Route giữ nguyên như cũ... */}
           <Route path="/" element={<Home/>}/>
@@ -259,6 +263,7 @@ function App() {
       </main>
 
       <Chatbot />
+      <Footer />
     </div>
   );
 }

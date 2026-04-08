@@ -1,0 +1,29 @@
+[33mcommit 291b90366463f0db70b402e2ba50692722fc1516[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: DungTony9 <nguyenvietdunghp1997@gmail.com>
+Date:   Wed Apr 8 14:05:57 2026 +0700
+
+    upddate mobile UI
+
+[33mcommit 5436bb2eb3dba457c7d1e1a6a60c458733705d7b[m
+Author: DINO1301 <skalet1301@gmail.com>
+Date:   Wed Mar 18 20:50:34 2026 +0700
+
+    fix_auth_error_msg
+
+[33mcommit 7da8783219b43a894f6bf96a6be0d39d636353da[m
+Author: DINO1301 <skalet1301@gmail.com>
+Date:   Wed Mar 18 20:38:46 2026 +0700
+
+    fix_css_import
+
+[33mcommit 377936923e1b1b1d76d508333c5ef57f20cef623[m
+Author: DINO1301 <skalet1301@gmail.com>
+Date:   Wed Mar 18 20:34:54 2026 +0700
+
+    update_stock_limits
+
+[33mcommit be98699998f571fa4ad20f061718d552c324105e[m
+Author: DINO1301 <skalet1301@gmail.com>
+Date:   Wed Mar 18 20:22:35 2026 +0700
+
+    fix_cart_overflow_and_multiple_batches

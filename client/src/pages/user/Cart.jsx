@@ -11,16 +11,30 @@ const Cart = () => {
   const navigate = useNavigate();
   
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('direct'); // 'direct' or 'online'
+  const [paymentMethod, setPaymentMethod] = useState('direct'); // 'direct', 'online', or 'vnpay'
 
   // LOGIC THANH TOÁN (FIFO)
   const handleCheckout = async () => {
     if (cartItems.length === 0) return;
     
-    const methodText = paymentMethod === 'direct' ? "Trực tiếp tại quầy" : "Thanh toán Online";
+    let methodText = "";
+    switch(paymentMethod) {
+      case 'direct': methodText = "Trực tiếp tại quầy"; break;
+      case 'online': methodText = "Thanh toán Online (Thẻ)"; break;
+      case 'vnpay': methodText = "Cổng thanh toán VNPay"; break;
+      default: methodText = "Chưa rõ";
+    }
+
     if (!window.confirm(`Xác nhận thanh toán đơn hàng trị giá ${totalAmount.toLocaleString()}đ?\nPhương thức: ${methodText}`)) return;
 
     setIsProcessing(true);
+
+    // Giả lập chuyển hướng VNPay
+    if (paymentMethod === 'vnpay') {
+      alert("Đang chuyển hướng đến cổng thanh toán VNPay...");
+      // Trong thực tế, đây là nơi gọi API tạo URL thanh toán và redirect
+      await new Promise(resolve => setTimeout(resolve, 1500)); 
+    }
 
     try {
       const orderDetails = []; 
@@ -99,7 +113,7 @@ const Cart = () => {
           batch_details: orderDetails,
           total_amount: totalAmount,
           payment_method: paymentMethod,
-          status: paymentMethod === 'online' ? 'paid' : 'pending',
+          status: (paymentMethod === 'online' || paymentMethod === 'vnpay') ? 'paid' : 'pending',
           created_at: new Date().toISOString()
         }]);
 
@@ -241,7 +255,19 @@ const Cart = () => {
                 }`}
               >
                 <CreditCard size={24} className="mb-1" />
-                <span className="text-xs font-bold">Online</span>
+                <span className="text-xs font-bold">Thẻ Online</span>
+              </button>
+
+              <button
+                onClick={() => setPaymentMethod('vnpay')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                  paymentMethod === 'vnpay'
+                    ? 'border-primary bg-blue-50 text-primary'
+                    : 'border-gray-100 hover:border-gray-200 text-gray-500'
+                }`}
+              >
+                <div className="w-6 h-6 mb-1 bg-red-500 text-white flex items-center justify-center rounded text-[8px] font-black italic">VNPAY</div>
+                <span className="text-xs font-bold">VNPay</span>
               </button>
             </div>
           </div>

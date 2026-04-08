@@ -3,7 +3,7 @@ import { ShieldCheck, Search, ShoppingCart, Activity, Database, Lock } from 'luc
 
 const Home = () => {
   return (
-    <div className="min-h-screen bg-brand-lightBlue">
+    <div className="bg-brand-lightBlue">
       
       {/* --- HERO SECTION --- */}
       <div className="relative text-brand-navy overflow-hidden bg-brand-lightBlue">
@@ -172,23 +172,6 @@ const Home = () => {
         <div className="absolute top-0 left-0 w-64 h-64 bg-blue-300 rounded-full blur-[100px] opacity-20"></div>
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-indigo-300 rounded-full blur-[100px] opacity-20"></div>
       </div>
-
-      {/* FOOTER */}
-      <footer className="bg-brand-lightBlue border-t border-blue-200 py-12 text-brand-navy">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-6 md:space-y-0">
-            <div className="flex items-center space-x-3">
-              <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-[10px] font-bold">M</div>
-              <p className="text-sm font-medium"><span className="font-bold">MedTrack</span> <span className="text-blue-700 ml-2">© 2024. All rights reserved.</span></p>
-            </div>
-            <div className="flex space-x-8 text-sm text-blue-700">
-              <a href="#" className="hover:text-blue-900 transition-colors">Điều khoản</a>
-              <a href="#" className="hover:text-blue-900 transition-colors">Bảo mật</a>
-              <a href="#" className="hover:text-blue-900 transition-colors">Liên hệ</a>
-            </div>
-          </div>
-        </div>
-      </footer>
 
     </div>
   );
