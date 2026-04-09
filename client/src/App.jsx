@@ -60,7 +60,6 @@ function App() {
   
   // State quản lý Menu Mobile
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const ADMIN_EMAIL = 'nguyenhieu@gmail.com';
 
   const handleLogout = async () => {
     try {
@@ -141,9 +140,9 @@ function App() {
               {user ? (
                 <>
                   <div className="text-right hidden xl:block leading-tight">
-                    <p className="text-sm font-bold text-gray-800">{user.full_name || user.email}</p>
+                    <p className="text-sm font-bold text-gray-800">{user.full_name}</p>
                     <div className="flex items-center gap-1 justify-end">
-                      {user.email === ADMIN_EMAIL && (
+                      {role === 'admin' && (
                         <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 rounded uppercase border border-emerald-100">
                           Admin on-chain
                         </span>

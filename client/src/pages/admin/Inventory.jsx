@@ -27,7 +27,6 @@ const Inventory = () => {
   const [deleting, setDeleting] = useState(false); // Thêm state cho xóa lô hàng
   const [isUploadingDocs, setIsUploadingDocs] = useState(false); // State cho nút upload file
   const [nameFilter, setNameFilter] = useState('');
-
   // Phân trang: 6 lô hàng mỗi trang
   const [page, setPage] = useState(1);
   const perPage = 6;
@@ -42,7 +41,7 @@ const Inventory = () => {
   const visibleBatches = filteredBatches.slice(start, start + perPage);
 
   useEffect(() => {
-    setPage(1);
+    setPage(start);
   }, [nameFilter, myBatches]);
 
   const handleDocFileUpload = async (event) => {
@@ -168,13 +167,7 @@ const Inventory = () => {
       const userAddr = currentAccount.toLowerCase();
       const contractAdmin = adminAddress.toLowerCase();
       // Quy ước: chỉ email này được xem tất cả lô như admin on-chain
-      const ADMIN_EMAIL = 'nguyenhieu@gmail.com';
-      const isAdmin = (user?.email === ADMIN_EMAIL) || (userAddr === contractAdmin);
-
-      console.log("Tổng số lô hàng:", Number(totalBatches));
-      console.log("Ví của bạn:", userAddr);
-      console.log("Admin của Contract:", contractAdmin);
-      console.log("Quyền Admin (email/contract):", isAdmin);
+      const isAdmin = (user?.role === 'admin') || (userAddr === contractAdmin);
 
       for (let i = 0; i < Number(totalBatches); i++) {
         try {

@@ -36,37 +36,34 @@ const Shop = () => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      console.log("🚀 Shop: Bắt đầu tải sản phẩm từ Supabase...");
-      console.log("URL Supabase:", import.meta.env.VITE_SUPABASE_URL ? "Đã nạp" : "CHƯA CÓ");
-      setLoading(true);
-      
-      const timeout = setTimeout(() => {
-        console.warn("⚠️ Tải shop quá lâu (10s), ép buộc tắt spinner.");
-        setLoading(false);
-      }, 10000);
+  const fetchProducts = async () => {
+    setLoading(true);
+    const timeout = setTimeout(() => {
+      console.warn("⚠️ Tải shop quá lâu (10s), ép buộc tắt spinner.");
+      setLoading(false);
+    }, 10000);
 
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error("❌ Lỗi từ Supabase:", error.message, error.details, error.hint);
-          throw error;
-        }
-        
-        console.log("✅ Shop: Đã nạp thành công", data?.length || 0, "sản phẩm.");
-        setProducts(data || []);
-      } catch (error) {
-        console.error("❌ Lỗi ngoại lệ khi tải shop:", error);
-      } finally {
-        clearTimeout(timeout);
-        setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error("❌ Lỗi từ Supabase:", error.message, error.details, error.hint);
+        throw error;
       }
-    };
+      
+      console.log("✅ Shop: Đã nạp thành công", data?.length || 0, "sản phẩm.");
+      setProducts(data || []);
+    } catch (error) {
+      console.error("❌ Lỗi ngoại lệ khi tải shop:", error);
+    } finally {
+      clearTimeout(timeout);
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
     fetchProducts();
   }, []);
 

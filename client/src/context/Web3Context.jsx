@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useRef } from 'react';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../utils/constants';
 
@@ -10,7 +10,7 @@ export const Web3Provider = ({ children }) => {
   const [currentAccount, setCurrentAccount] = useState('');
   const [contract, setContract] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-
+  const accountRef = useRef(currentAccount);
   // 1. Khởi tạo kết nối "Chế độ Khách" (Read-Only) ngay khi vào web
   const initReadOnlyContract = async () => {
     const rpcUrls = [
@@ -117,19 +117,23 @@ export const Web3Provider = ({ children }) => {
     const init = async () => {
       // Chạy song song thay vì tuần tự để tránh treo
       initReadOnlyContract();
-      
+      accountRef.current = currentAccount;
       const shouldAutoConnect = localStorage.getItem('isWalletConnected') === 'true';
       if (shouldAutoConnect) {
         checkIfWalletIsConnected();
       }
     };
     init();
-
+    
     if (ethereum) {
       const handleAccountsChanged = (accounts) => {
         if (accounts.length > 0) {
-          setCurrentAccount(accounts[0]);
-          connectContractWithSigner();
+          const newAccount = accounts[0];
+          // Chỉ cập nhật và tạo lại Contract nếu tài khoản THỰC SỰ khác
+          if (newAccount.toLowerCase() !== accountRef.current.toLowerCase()) {
+            setCurrentAccount(newAccount);
+            connectContractWithSigner();
+          }
         } else {
           disconnectWallet();
         }
@@ -147,7 +151,7 @@ export const Web3Provider = ({ children }) => {
         ethereum.removeListener('chainChanged', handleChainChanged);
       };
     }
-  }, []);
+  }, [currentAccount]);
 
   return (
     <Web3Context.Provider value={{ 
