@@ -158,62 +158,80 @@ const Inventory = () => {
   const fetchMyInventory = async () => {
     if (!contract || !currentAccount) return;
     setLoading(true);
-    const tempBatches = [];
 
     try {
-      // 1. Lấy địa chỉ Admin từ hợp đồng
+      // 1. Lấy thông tin cơ bản
       const adminAddress = await contract.admin();
       const totalBatches = await contract.batchCount();
       const userAddr = currentAccount.toLowerCase();
       const contractAdmin = adminAddress.toLowerCase();
-      // Quy ước: chỉ email này được xem tất cả lô như admin on-chain
       const isAdmin = (user?.role === 'admin') || (userAddr === contractAdmin);
 
-      for (let i = 0; i < Number(totalBatches); i++) {
-        try {
-          const bCode = await contract.allBatchCodes(i);
-          if (bCode.toString() === "0") continue;
+      const batchCount = Number(totalBatches);
+      const tempBatches = [];
+      const CHUNK_SIZE = 10; // Bắn song song 10 lô hàng cùng lúc (tránh bị rate-limit)
 
-          // Kiểm tra xem lô hàng có tồn tại thực sự không trước khi gọi getBatchDetails
-          // contract.batches(bCode) trả về Struct { batchCode, name, ..., isExists }
+      // Hàm helper để fetch thông tin của 1 lô hàng duy nhất
+      const fetchSingleBatch = async (index) => {
+        try {
+          const bCode = await contract.allBatchCodes(index);
+          if (bCode.toString() === "0") return null;
+
           const batchInfo = await contract.batches(bCode);
-          if (!batchInfo.isExists) continue;
+          if (!batchInfo.isExists) return null;
 
           const batch = await contract.getBatchDetails(bCode);
           
-          // CÁCH TRUY XUẤT AN TOÀN TUYỆT ĐỐI (Hỗ trợ cả Array và Object)
           const b_name = batch.name || batch[0];
           const b_manuf = batch.manufacturer || batch[1];
           const b_owner = (batch.currentOwner || batch[2] || "").toString().toLowerCase();
           const b_creator = (batch.creator || batch[3] || "").toString().toLowerCase();
           const b_status = batch.status !== undefined ? Number(batch.status) : Number(batch[4]);
-          
-          const userAddr = currentAccount.toLowerCase();
 
-          // Kiểm tra quyền sở hữu thực tế trên Blockchain
           const isOwnerOnChain = b_owner === userAddr || b_creator === userAddr || isAdmin;
 
           if (isAdmin || b_owner === userAddr || b_creator === userAddr) {
-            tempBatches.push({
+            return {
               id: bCode.toString(),
               name: b_name,
               manufacturer: b_manuf,
               status: b_status,
-              isOwnerOnChain: isOwnerOnChain // Lưu lại quyền thực tế
-            });
+              isOwnerOnChain: isOwnerOnChain
+            };
           }
+          return null;
         } catch (e) {
-          console.warn(`Lô tại index #${i} (Mã: ${i}) không khả dụng:`, e.message);
+          console.warn(`Lô tại index #${index} lỗi:`, e.message);
+          return null;
         }
+      };
+
+      // 2. Chạy vòng lặp chia chunk (đoạn nhỏ)
+      for (let i = 0; i < batchCount; i += CHUNK_SIZE) {
+        const chunkPromises = [];
+        const end = Math.min(i + CHUNK_SIZE, batchCount);
+        
+        // Gom các promises lại
+        for (let j = i; j < end; j++) {
+          chunkPromises.push(fetchSingleBatch(j));
+        }
+
+        // Thực thi song song tất cả các request trong chunk này
+        const chunkResults = await Promise.all(chunkPromises);
+        
+        // Lọc bỏ những kết quả null và thêm vào danh sách chính
+        const validBatches = chunkResults.filter(batch => batch !== null);
+        tempBatches.push(...validBatches);
       }
+
       setMyBatches(tempBatches);
+
     } catch (err) {
       console.error("Lỗi tải kho hàng:", err);
     } finally {
       setLoading(false);
     }
   };
-
   const handleTransfer = async (e) => {
     e.preventDefault();
     if (!contract || !selectedBatch) return;
@@ -266,17 +284,8 @@ const Inventory = () => {
     try {
       setDelivering(true);
       
-      // KIỂM TRA TRƯỚC KHI GỬI
-      console.log("--- ĐANG KIỂM TRA TRƯỚC KHI KẾT THÚC ---");
-      console.log("ID Lô hàng:", deliveryBatch.id);
-      console.log("Ví của bạn:", currentAccount);
-      
       const batchInfo = await contract.getBatchDetails(deliveryBatch.id);
-      console.log("Chủ sở hữu trên Contract:", batchInfo.currentOwner);
-      console.log("Người tạo trên Contract:", batchInfo.creator);
       const adminAddr = await contract.admin();
-      console.log("Admin trên Contract:", adminAddr);
-
       const tx = await contract.deliverBatch(deliveryBatch.id, deliveryNote);
       await tx.wait();
 
