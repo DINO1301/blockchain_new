@@ -125,7 +125,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-[70vh] flex items-center justify-center bg-gray-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden max-w-4xl w-full flex flex-col md:flex-row border border-gray-100">
         
         {/* Cột trái: Hình ảnh/Banner */}

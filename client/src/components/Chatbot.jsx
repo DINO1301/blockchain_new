@@ -7,51 +7,111 @@ import { Link } from 'react-router-dom';
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { id: 1, type: 'bot', text: 'Chào bạn! Tôi là trợ lý ảo MediBot. Bạn có thể nhập triệu chứng như "tôi đang bị...." hoặc tên thuốc cụ thể để tôi hỗ trợ tư vấn loại thuốc phù hợp nhé!' }
+    { id: 1, type: 'bot', text: 'Chào bạn! Tôi là trợ lý ảo MediBot của hệ thống MediTrack. Tôi có thể giúp bạn tìm kiếm thuốc, tư vấn sử dụng thuốc hoặc giải đáp các thắc mắc về sức khỏe dựa trên danh mục thuốc có sẵn. Bạn cần hỗ trợ gì không?' }
   ]);
   const [input, setInput] = useState('');
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [lastSuggestions, setLastSuggestions] = useState([]);
   const scrollRef = useRef(null);
   
   const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GOOGLE_GEN_AI_KEY);
-  const model = genAI.getGenerativeModel({ model: "models/gemini-2.0-flash" });
+  const model = genAI.getGenerativeModel({ 
+    model: "models/gemini-2.0-flash",
+    systemInstruction: `Bạn là MediBot, trợ lý ảo thông minh của hệ thống nhà thuốc MediTrack. 
+    Nhiệm vụ của bạn là:
+    1. Tư vấn sức khỏe và giải đáp thắc mắc về thuốc một cách chuyên nghiệp, tận tâm.
+    2. Luôn dựa vào danh sách sản phẩm (products) được cung cấp để gợi ý chính xác.
+    3. Nếu người dùng hỏi về triệu chứng, hãy gợi ý các loại thuốc phù hợp từ danh sách sản phẩm bằng cách nhắc đến tên đầy đủ của chúng.
+    4. Trả lời ngắn gọn, súc tích, chia thành các ý rõ ràng.
+    5. LUÔN nhắc nhở người dùng tham khảo ý kiến bác sĩ trước khi sử dụng thuốc.
+    6. Nếu sản phẩm người dùng tìm không có trong danh sách, hãy trả lời lịch sự là hiện tại cửa hàng chưa có loại này và gợi ý loại tương đương có trong danh sách nếu có.
+    7. Khi gợi ý sản phẩm từ danh sách, hãy viết hoa tên sản phẩm hoặc nhắc đến chính xác tên của chúng để người dùng dễ nhận biết.`
+  });
+
+  // Lưu lịch sử chat cho AI (format Gemini)
+  const [chatHistory, setChatHistory] = useState([]);
 
   useEffect(() => {
-    handleSend();
     const fetchProducts = async () => {
       try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*');
-        
+        const { data, error } = await supabase.from('products').select('id, name, image_url, price, sub_category');
         if (error) throw error;
         setProducts(data || []);
       } catch (error) {
-        console.error("Lỗi lấy dữ liệu thuốc cho Chatbot:", error);
+        console.error("Lỗi lấy dữ liệu thuốc:", error);
       }
     };
     fetchProducts();
+  }, []);
+
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const handleSend = async (e) => {
-    e.preventDefault();
-    const input = "Xin chào!";
-    try {
-      const result = await model.generateContent(input);
-      const response = await result.response;
-      const text = response.text();
+    if (e) e.preventDefault();
+    if (!input.trim() || isLoading) return;
 
-      // Cập nhật phản hồi từ Gemini
-      console.log(text);
+    const userMessage = input.trim();
+    setInput('');
+    setIsLoading(true);
+
+    // Thêm tin nhắn user vào giao diện
+    const newUserMsg = { id: Date.now(), type: 'user', text: userMessage };
+    setMessages(prev => [...prev, newUserMsg]);
+
+    try {
+      // Chuẩn bị ngữ cảnh sản phẩm
+      const productContext = products.length > 0 
+        ? `Danh sách sản phẩm hiện có tại MediTrack:\n${products.map(p => `- ${p.name} (Loại: ${p.sub_category}, ID: ${p.id})`).join('\n')}`
+        : "Hiện tại danh sách sản phẩm đang trống.";
+
+      const chat = model.startChat({
+        history: chatHistory,
+        generationConfig: { maxOutputTokens: 1000 },
+      });
+
+      // Gửi kèm ngữ cảnh sản phẩm trong tin nhắn đầu tiên hoặc khi cần thiết
+      const prompt = `[CONTEXT: ${productContext}]\n\nUser: ${userMessage}`;
+      const result = await chat.sendMessage(prompt);
+      const response = await result.response;
+      const botText = response.text();
+
+      // Cập nhật lịch sử chat cho Gemini
+      setChatHistory([
+        ...chatHistory,
+        { role: "user", parts: [{ text: userMessage }] },
+        { role: "model", parts: [{ text: botText }] },
+      ]);
+
+      // Tìm kiếm sản phẩm được gợi ý trong văn bản trả lời (dựa trên format [Tên sản phẩm])
+      const suggestedProducts = [];
+      products.forEach(p => {
+        if (botText.toLowerCase().includes(p.name.toLowerCase())) {
+          if (!suggestedProducts.find(sp => sp.id === p.id)) {
+            suggestedProducts.push(p);
+          }
+        }
+      });
+
+      const newBotMsg = { 
+        id: Date.now() + 1, 
+        type: 'bot', 
+        text: botText,
+        suggestions: suggestedProducts.slice(0, 3) // Lấy tối đa 3 gợi ý
+      };
+
+      setMessages(prev => [...prev, newBotMsg]);
       
     } catch (error) {
-      console.error("Lỗi khi gọi Gemini API:", error);
-      // setHistory([...newHistory, { role: "bot", text: "Có lỗi xảy ra, thử lại sau nhé!" }]);
+      console.error("Lỗi Gemini:", error);
+      setMessages(prev => [...prev, { 
+        id: Date.now() + 1, 
+        type: 'bot', 
+        text: "Xin lỗi, tôi đang gặp một chút trục trặc kỹ thuật. Bạn vui lòng thử lại sau giây lát nhé!" 
+      }]);
     } finally {
       setIsLoading(false);
     }

@@ -5,6 +5,11 @@
 @tailwind utilities;
 
 /* Thêm một chút style cơ bản */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
 body {
   background-color: #e1effe; /* Xanh trắng rõ rệt hơn */
   color: #0d141b;
