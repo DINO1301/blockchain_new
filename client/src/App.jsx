@@ -206,7 +206,7 @@ function App() {
               {user ? (
                 <div className="flex flex-col gap-4">
                   <div>
-                    <p className="text-sm font-bold text-gray-800">{user.full_name || user.email}</p>
+                    <p className="text-sm font-bold text-gray-800">{user.full_name}</p>
                     <p className="text-xs text-gray-500 uppercase">{role || 'User'}</p>
                   </div>
                   
