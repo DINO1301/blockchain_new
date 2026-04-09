@@ -41,7 +41,7 @@ const Inventory = () => {
   const visibleBatches = filteredBatches.slice(start, start + perPage);
 
   useEffect(() => {
-    setPage(start);
+    setPage(1);
   }, [nameFilter, myBatches]);
 
   const handleDocFileUpload = async (event) => {
