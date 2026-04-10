@@ -89,7 +89,7 @@ const Cart = () => {
             amount: totalAmount, 
             orderId: orderId,
             orderInfo: `Thanh toan don hang MediTrack #${orderId}`,
-            redirectUrl: window.location.href // Quay lại chính trang giỏ hàng này
+            redirectUrl: window.location.origin + window.location.pathname // URL sạch, không có query params cũ
           }
         });
 
@@ -210,6 +210,38 @@ const Cart = () => {
   if (cartItems.length === 0) {
     return (
       <div className="max-w-4xl mx-auto p-10 text-center">
+        {/* Vẫn hiển thị thông báo trạng thái thanh toán ngay cả khi giỏ hàng trống (sau khi thành công) */}
+        {paymentStatus && (
+          <div className={`mb-10 p-5 rounded-3xl flex flex-col items-center gap-4 animate-in zoom-in-95 duration-500 shadow-xl ${
+            paymentStatus.type === 'success' ? 'bg-green-50 border-2 border-green-200 text-green-800' :
+            paymentStatus.type === 'cancel' ? 'bg-amber-50 border-2 border-amber-200 text-amber-800' :
+            'bg-red-50 border-2 border-red-200 text-red-800'
+          }`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+              paymentStatus.type === 'success' ? 'bg-green-200' :
+              paymentStatus.type === 'cancel' ? 'bg-amber-200' :
+              'bg-red-200'
+            }`}>
+              {paymentStatus.type === 'success' ? <CheckCircle2 size={32} className="text-green-700" /> :
+               paymentStatus.type === 'cancel' ? <AlertCircle size={32} className="text-amber-700" /> :
+               <XCircle size={32} className="text-red-700" />}
+            </div>
+            <div className="max-w-sm">
+              <h4 className="font-black text-2xl mb-1">
+                {paymentStatus.type === 'success' ? 'Thanh toán thành công!' :
+                 paymentStatus.type === 'cancel' ? 'Đã hủy giao dịch' :
+                 'Lỗi thanh toán'}
+              </h4>
+              <p className="text-sm font-bold opacity-80">{paymentStatus.message}</p>
+            </div>
+            {paymentStatus.type === 'success' && (
+              <div className="w-full h-1.5 bg-green-100 rounded-full mt-4 overflow-hidden">
+                <div className="h-full bg-green-500 animate-[progress_3s_linear_forwards]" />
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="bg-gray-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-4">
           <ShoppingBag size={40} className="text-gray-400" />
         </div>
