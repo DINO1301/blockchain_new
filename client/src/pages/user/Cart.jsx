@@ -11,28 +11,26 @@ const Cart = () => {
   const navigate = useNavigate();
   
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('direct'); // 'direct', 'online', 'vnpay', 'momo', 'zalopay'
+  const [paymentMethod, setPaymentMethod] = useState('direct'); // 'direct', 'online'
+  const [onlineProvider, setOnlineProvider] = useState('momo'); // Mặc định là momo khi chọn online
 
   // LOGIC THANH TOÁN (FIFO)
   const handleCheckout = async () => {
     if (cartItems.length === 0) return;
     
     let methodText = "";
-    switch(paymentMethod) {
-      case 'direct': methodText = "Trực tiếp tại quầy"; break;
-      case 'online': methodText = "Thanh toán Online (Thẻ)"; break;
-      case 'vnpay': methodText = "Cổng thanh toán VNPay"; break;
-      case 'momo': methodText = "Ví điện tử MoMo"; break;
-      case 'zalopay': methodText = "Ví điện tử ZaloPay"; break;
-      default: methodText = "Chưa rõ";
+    if (paymentMethod === 'direct') {
+      methodText = "Trực tiếp tại quầy";
+    } else {
+      methodText = onlineProvider === 'momo' ? "Ví điện tử MoMo" : "Thanh toán Online";
     }
 
     if (!window.confirm(`Xác nhận thanh toán đơn hàng trị giá ${totalAmount.toLocaleString()}đ?\nPhương thức: ${methodText}`)) return;
 
     setIsProcessing(true);
 
-    // Xử lý MoMo Payment
-    if (paymentMethod === 'momo') {
+    // Xử lý Online Payment (MoMo)
+    if (paymentMethod === 'online' && onlineProvider === 'momo') {
       try {
         const orderId = "MOMO" + Date.now();
         // Gọi Edge Function
@@ -47,8 +45,6 @@ const Cart = () => {
         if (error) throw error;
         
         if (data && data.payUrl) {
-          // Lưu thông tin đơn hàng tạm thời vào đơn hàng (chưa thanh toán)
-          // Trong thực tế nên tạo đơn hàng với status 'pending' trước
           window.location.href = data.payUrl;
           return;
         } else {
@@ -60,12 +56,6 @@ const Cart = () => {
         setIsProcessing(false);
         return;
       }
-    }
-
-    // Giả lập chuyển hướng thanh toán khác
-    if (paymentMethod === 'vnpay' || paymentMethod === 'zalopay') {
-      alert(`Đang chuyển hướng đến cổng thanh toán ${methodText}...`);
-      await new Promise(resolve => setTimeout(resolve, 1500)); 
     }
 
     try {
@@ -265,67 +255,63 @@ const Cart = () => {
 
           <div className="mb-6">
             <h3 className="text-sm font-bold text-gray-700 mb-3">Phương thức thanh toán</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 mb-6">
               <button
                 onClick={() => setPaymentMethod('direct')}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${
                   paymentMethod === 'direct'
                     ? 'border-primary bg-blue-50 text-primary'
                     : 'border-gray-100 hover:border-gray-200 text-gray-500'
                 }`}
               >
-                <Wallet size={24} className="mb-1" />
-                <span className="text-xs font-bold text-center">Trực tiếp</span>
+                <Wallet size={28} className="mb-2" />
+                <span className="text-xs font-black uppercase tracking-tight">Trực tiếp</span>
               </button>
 
               <button
                 onClick={() => setPaymentMethod('online')}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${
                   paymentMethod === 'online'
                     ? 'border-primary bg-blue-50 text-primary'
                     : 'border-gray-100 hover:border-gray-200 text-gray-500'
                 }`}
               >
-                <CreditCard size={24} className="mb-1" />
-                <span className="text-xs font-bold text-center">Thẻ Online</span>
-              </button>
-
-              <button
-                onClick={() => setPaymentMethod('vnpay')}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
-                  paymentMethod === 'vnpay'
-                    ? 'border-primary bg-blue-50 text-primary'
-                    : 'border-gray-100 hover:border-gray-200 text-gray-500'
-                }`}
-              >
-                <div className="w-6 h-6 mb-1 bg-red-500 text-white flex items-center justify-center rounded text-[8px] font-black italic">VNPAY</div>
-                <span className="text-xs font-bold text-center">VNPay</span>
-              </button>
-
-              <button
-                onClick={() => setPaymentMethod('momo')}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
-                  paymentMethod === 'momo'
-                    ? 'border-[#A50064] bg-pink-50 text-[#A50064]'
-                    : 'border-gray-100 hover:border-gray-200 text-gray-500'
-                }`}
-              >
-                <div className="w-6 h-6 mb-1 bg-[#A50064] text-white flex items-center justify-center rounded-lg text-[8px] font-black italic">MoMo</div>
-                <span className="text-xs font-bold text-center">Ví MoMo</span>
-              </button>
-
-              <button
-                onClick={() => setPaymentMethod('zalopay')}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
-                  paymentMethod === 'zalopay'
-                    ? 'border-[#008fe5] bg-blue-50 text-[#008fe5]'
-                    : 'border-gray-100 hover:border-gray-200 text-gray-500'
-                }`}
-              >
-                <div className="w-6 h-6 mb-1 bg-[#008fe5] text-white flex items-center justify-center rounded-lg text-[8px] font-black italic">Zalo</div>
-                <span className="text-xs font-bold text-center">ZaloPay</span>
+                <CreditCard size={28} className="mb-2" />
+                <span className="text-xs font-black uppercase tracking-tight">Thẻ Online</span>
               </button>
             </div>
+
+            {/* Phương thức con khi chọn Online */}
+            {paymentMethod === 'online' && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Chọn cổng thanh toán</h4>
+                <div className="grid grid-cols-1 gap-2">
+                  <button
+                    onClick={() => setOnlineProvider('momo')}
+                    className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all group ${
+                      onlineProvider === 'momo'
+                        ? 'border-[#A50064] bg-pink-50'
+                        : 'border-gray-50 hover:border-gray-100 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#A50064] text-white flex items-center justify-center rounded-xl text-[10px] font-black italic shadow-sm">MoMo</div>
+                      <div className="text-left">
+                        <p className={`text-sm font-black ${onlineProvider === 'momo' ? 'text-[#A50064]' : 'text-gray-700'}`}>Ví điện tử MoMo</p>
+                        <p className="text-[10px] text-gray-400 font-bold">Thanh toán an toàn qua MoMo</p>
+                      </div>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                      onlineProvider === 'momo' ? 'border-[#A50064] bg-[#A50064]' : 'border-gray-200'
+                    }`}>
+                      {onlineProvider === 'momo' && <div className="w-2 h-2 bg-white rounded-full" />}
+                    </div>
+                  </button>
+
+                  {/* Thêm các cổng khác ở đây trong tương lai */}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-between text-xl font-bold text-gray-800 mb-6">
