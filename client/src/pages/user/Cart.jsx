@@ -440,6 +440,16 @@ const Cart = () => {
           >
             {isProcessing ? <Loader2 className="animate-spin" /> : <>Thanh toán ngay <ArrowRight size={20}/></>}
           </button>
+
+          {/* NÚT TEST GIẢ LẬP - CHỈ DÙNG ĐỂ KIỂM TRA GIAO DIỆN */}
+          <button
+            onClick={() => {
+              setSearchParams({ resultCode: '0', orderId: 'TEST_' + Date.now() });
+            }}
+            className="w-full mt-2 border-2 border-dashed border-gray-200 text-gray-400 py-2 rounded-xl text-[10px] font-bold hover:bg-gray-50 transition"
+          >
+            [DEBUG] Giả lập MoMo Thành Công
+          </button>
           
           <p className="text-xs text-gray-400 text-center mt-4">
             *Hệ thống sẽ tự động chọn lô thuốc có hạn sử dụng tốt nhất cho bạn.
