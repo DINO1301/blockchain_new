@@ -9,7 +9,7 @@ const Cart = () => {
   const { cartItems, updateQuantity, removeFromCart, clearCart, totalAmount } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null); // { type: 'success' | 'error' | 'cancel', message: string }
@@ -33,35 +33,32 @@ const Cart = () => {
     const orderId = searchParams.get('orderId');
 
     if (resultCode !== null) {
-      setIsProcessing(false); // Dừng vòng xoay ngay lập tức khi nhận kết quả
+      console.log("MoMo Result:", resultCode, "Order:", orderId);
+      setIsProcessing(false); 
       
       if (resultCode === '0') {
-        // Thành công: Xóa giỏ hàng và hiển thị thông báo
         setPaymentStatus({
           type: 'success',
           message: 'Thanh toán MoMo thành công! Đơn hàng của bạn đang được xử lý.'
         });
         clearCart();
-        // Sau 3 giây chuyển hướng sang trang đơn hàng
         setTimeout(() => navigate('/orders'), 3000);
       } else if (resultCode === '1006' || resultCode === '1005') {
-        // Người dùng hủy giao dịch
         setPaymentStatus({
           type: 'cancel',
           message: 'Giao dịch đã bị hủy. Bạn có thể thử lại hoặc chọn phương thức khác.'
         });
       } else {
-        // Lỗi khác
         setPaymentStatus({
           type: 'error',
-          message: 'Giao dịch không thành công. Vui lòng kiểm tra lại tài khoản MoMo.'
+          message: `Giao dịch không thành công (Mã lỗi: ${resultCode}). Vui lòng thử lại.`
         });
       }
 
-      // Xóa các tham số trên URL để tránh lặp lại logic khi reload
-      window.history.replaceState({}, document.title, window.location.pathname);
+      // Xóa params bằng React Router thay vì window.history
+      setSearchParams({}, { replace: true });
     }
-  }, [searchParams, clearCart, navigate]);
+  }, [searchParams, setSearchParams, clearCart, navigate]);
 
   // LOGIC THANH TOÁN (FIFO)
   const handleCheckout = async () => {
@@ -77,19 +74,18 @@ const Cart = () => {
     if (!window.confirm(`Xác nhận thanh toán đơn hàng trị giá ${totalAmount.toLocaleString()}đ?\nPhương thức: ${methodText}`)) return;
 
     setIsProcessing(true);
-    setPaymentStatus(null); // Reset trạng thái thông báo cũ
+    setPaymentStatus(null); 
 
-    // Xử lý Online Payment (MoMo)
     if (paymentMethod === 'online' && onlineProvider === 'momo') {
       try {
-        const orderId = "MOMO" + Date.now();
-        // Gọi Edge Function
+        // Tạo orderId ngắn gọn hơn và độc nhất
+        const orderId = "MT" + Math.floor(Date.now() / 1000); 
         const { data, error } = await supabase.functions.invoke('momo-payment', {
           body: { 
             amount: totalAmount, 
             orderId: orderId,
             orderInfo: `Thanh toan don hang MediTrack #${orderId}`,
-            redirectUrl: window.location.origin + window.location.pathname // URL sạch, không có query params cũ
+            redirectUrl: window.location.origin + window.location.pathname
           }
         });
 
