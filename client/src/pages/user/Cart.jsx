@@ -1,18 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
-import { Trash2, Minus, Plus, ArrowRight, Loader2, ShoppingBag, CreditCard, Wallet } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Trash2, Minus, Plus, ArrowRight, Loader2, ShoppingBag, CreditCard, Wallet, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 const Cart = () => {
   const { cartItems, updateQuantity, removeFromCart, clearCart, totalAmount } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(null); // { type: 'success' | 'error' | 'cancel', message: string }
   const [paymentMethod, setPaymentMethod] = useState('direct'); // 'direct', 'online'
   const [onlineProvider, setOnlineProvider] = useState('momo'); // Mặc định là momo khi chọn online
+
+  // Xử lý kết quả trả về từ MoMo
+  useEffect(() => {
+    const resultCode = searchParams.get('resultCode');
+    const orderId = searchParams.get('orderId');
+
+    if (resultCode !== null) {
+      if (resultCode === '0') {
+        // Thành công: Xóa giỏ hàng và hiển thị thông báo
+        setPaymentStatus({
+          type: 'success',
+          message: 'Thanh toán MoMo thành công! Đơn hàng của bạn đang được xử lý.'
+        });
+        clearCart();
+        // Sau 3 giây chuyển hướng sang trang đơn hàng
+        setTimeout(() => navigate('/orders'), 3000);
+      } else if (resultCode === '1006' || resultCode === '1005') {
+        // Người dùng hủy giao dịch
+        setPaymentStatus({
+          type: 'cancel',
+          message: 'Giao dịch đã bị hủy. Bạn có thể thử lại hoặc chọn phương thức khác.'
+        });
+      } else {
+        // Lỗi khác
+        setPaymentStatus({
+          type: 'error',
+          message: 'Giao dịch không thành công. Vui lòng kiểm tra lại tài khoản MoMo.'
+        });
+      }
+
+      // Xóa các tham số trên URL để tránh lặp lại logic khi reload
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [searchParams, clearCart, navigate]);
 
   // LOGIC THANH TOÁN (FIFO)
   const handleCheckout = async () => {
@@ -28,6 +64,7 @@ const Cart = () => {
     if (!window.confirm(`Xác nhận thanh toán đơn hàng trị giá ${totalAmount.toLocaleString()}đ?\nPhương thức: ${methodText}`)) return;
 
     setIsProcessing(true);
+    setPaymentStatus(null); // Reset trạng thái thông báo cũ
 
     // Xử lý Online Payment (MoMo)
     if (paymentMethod === 'online' && onlineProvider === 'momo') {
@@ -38,7 +75,8 @@ const Cart = () => {
           body: { 
             amount: totalAmount, 
             orderId: orderId,
-            orderInfo: `Thanh toan don hang MediTrack #${orderId}`
+            orderInfo: `Thanh toan don hang MediTrack #${orderId}`,
+            redirectUrl: window.location.href // Quay lại chính trang giỏ hàng này
           }
         });
 
@@ -52,7 +90,10 @@ const Cart = () => {
         }
       } catch (err) {
         console.error("Lỗi MoMo:", err);
-        alert("Lỗi kết nối MoMo: " + err.message);
+        setPaymentStatus({
+          type: 'error',
+          message: "Lỗi kết nối MoMo: " + err.message
+        });
         setIsProcessing(false);
         return;
       }
@@ -169,7 +210,41 @@ const Cart = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 grid md:grid-cols-3 gap-8">
+    <div className="max-w-6xl mx-auto p-6">
+      {/* Thông báo trạng thái thanh toán */}
+      {paymentStatus && (
+        <div className={`mb-6 p-4 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500 ${
+          paymentStatus.type === 'success' ? 'bg-green-50 border-2 border-green-100 text-green-700' :
+          paymentStatus.type === 'cancel' ? 'bg-amber-50 border-2 border-amber-100 text-amber-700' :
+          'bg-red-50 border-2 border-red-100 text-red-700'
+        }`}>
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
+            paymentStatus.type === 'success' ? 'bg-green-100' :
+            paymentStatus.type === 'cancel' ? 'bg-amber-100' :
+            'bg-red-100'
+          }`}>
+            {paymentStatus.type === 'success' ? <CheckCircle2 className="text-green-600" /> :
+             paymentStatus.type === 'cancel' ? <AlertCircle className="text-amber-600" /> :
+             <XCircle className="text-red-600" />}
+          </div>
+          <div>
+            <h4 className="font-bold text-lg">
+              {paymentStatus.type === 'success' ? 'Thành công!' :
+               paymentStatus.type === 'cancel' ? 'Đã hủy giao dịch' :
+               'Lỗi thanh toán'}
+            </h4>
+            <p className="text-sm opacity-90 font-medium">{paymentStatus.message}</p>
+          </div>
+          <button 
+            onClick={() => setPaymentStatus(null)}
+            className="ml-auto p-2 hover:bg-black/5 rounded-lg transition"
+          >
+            <XCircle size={20} className="opacity-40" />
+          </button>
+        </div>
+      )}
+
+      <div className="grid md:grid-cols-3 gap-8">
       {/* Cột Trái: Danh sách hàng */}
       <div className="md:col-span-2 space-y-4">
         <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">

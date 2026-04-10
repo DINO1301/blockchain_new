@@ -17,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, orderId, orderInfo } = await req.json()
+    const { amount, orderId, orderInfo, redirectUrl: clientRedirectUrl } = await req.json()
 
     // Đảm bảo amount là chuỗi không có phần thập phân
     const amountStr = Math.round(Number(amount)).toString();
@@ -26,7 +26,7 @@ serve(async (req) => {
     const accessKey = 'F8BBA842ECF85'; 
     const secretKey = 'K951B6PE1waDMi640xX08PD3vg6EkVlz'; 
     const partnerCode = 'MOMO'; 
-    const redirectUrl = 'https://webhook.site/b3088a6a-2d17-4f8d-a383-71389a6c600b'; // Dùng URL của user để test
+    const redirectUrl = clientRedirectUrl || 'https://webhook.site/b3088a6a-2d17-4f8d-a383-71389a6c600b'; // Ưu tiên URL từ client
     const ipnUrl = 'https://webhook.site/b3088a6a-2d17-4f8d-a383-71389a6c600b'; 
     const requestType = "captureWallet"; // Chuyển sang captureWallet vì đây là chuẩn AIO v2 phổ biến nhất cho web
     const requestId = orderId; 
