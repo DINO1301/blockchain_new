@@ -72,6 +72,7 @@ serve(async (req) => {
     };
 
     // 3. Gọi MoMo API
+    console.log("Requesting MoMo Create Order:", orderId);
     const response = await fetch('https://test-payment.momo.vn/v2/gateway/api/create', {
       method: 'POST',
       headers: {
@@ -81,6 +82,7 @@ serve(async (req) => {
     });
 
     const data = await response.json();
+    console.log("MoMo API Response:", JSON.stringify(data));
 
     return new Response(JSON.stringify(data), {
       status: response.status,
