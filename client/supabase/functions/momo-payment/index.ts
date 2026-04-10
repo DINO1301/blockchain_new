@@ -19,11 +19,9 @@ serve(async (req) => {
   try {
     const { amount, orderInfo, redirectUrl: clientRedirectUrl } = await req.json()
 
-    // 1. TẠO ID DUY NHẤT TẠI SERVER ĐỂ TRÁNH LỖI 1005
-    const timestamp = Date.now();
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const orderId = `MT${timestamp}${randomSuffix}`;
-    const requestId = orderId; // requestId PHẢI trùng với orderId
+    // 1. TẠO ID DUY NHẤT VÀ NGẮN GỌN (CHỈ SỐ)
+    const orderId = Date.now().toString();
+    const requestId = orderId; 
 
     // Đảm bảo amount là chuỗi không có phần thập phân
     const amountStr = Math.round(Number(amount)).toString();
