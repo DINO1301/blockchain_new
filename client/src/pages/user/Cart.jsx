@@ -78,15 +78,11 @@ const Cart = () => {
 
     if (paymentMethod === 'online' && onlineProvider === 'momo') {
       try {
-        // Tạo mã đơn hàng siêu độc nhất để tránh lỗi 1005 trên hệ thống MoMo Test
-        const randomStr = Math.random().toString(36).substring(2, 10).toUpperCase();
-        const orderId = "QR" + Date.now() + randomStr; 
-        
+        // Gửi yêu cầu lên Edge Function - Server sẽ tự tạo orderId duy nhất
         const { data, error } = await supabase.functions.invoke('momo-payment', {
           body: { 
             amount: totalAmount, 
-            orderId: orderId,
-            orderInfo: `Thanh toan don hang #${orderId}`,
+            orderInfo: `Thanh toan don hang MediTrack`,
             redirectUrl: "https://blockchain-new-five.vercel.app/cart"
           }
         });
