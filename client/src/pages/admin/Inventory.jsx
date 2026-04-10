@@ -167,10 +167,6 @@ const Inventory = () => {
       const contractAdmin = adminAddress.toLowerCase();
       const isAdmin = (user?.role === 'admin') || (userAddr === contractAdmin);
 
-      const batchCount = Number(totalBatches);
-      const tempBatches = [];
-      const CHUNK_SIZE = 10; // Bắn song song 10 lô hàng cùng lúc (tránh bị rate-limit)
-
       // Hàm helper để fetch thông tin của 1 lô hàng duy nhất
       const fetchSingleBatch = async (index) => {
         try {
@@ -206,23 +202,22 @@ const Inventory = () => {
         }
       };
 
-      // 2. Chạy vòng lặp chia chunk (đoạn nhỏ)
-      for (let i = 0; i < batchCount; i += CHUNK_SIZE) {
-        const chunkPromises = [];
-        const end = Math.min(i + CHUNK_SIZE, batchCount);
-        
-        // Gom các promises lại
-        for (let j = i; j < end; j++) {
-          chunkPromises.push(fetchSingleBatch(j));
-        }
+      const batchCount = Number(totalBatches);
+      const tempBatches = [];
+      const CHUNK_SIZE = 25; // Tăng lên 25 để load cực nhanh
 
-        // Thực thi song song tất cả các request trong chunk này
-        const chunkResults = await Promise.all(chunkPromises);
-        
-        // Lọc bỏ những kết quả null và thêm vào danh sách chính
-        const validBatches = chunkResults.filter(batch => batch !== null);
-        tempBatches.push(...validBatches);
+      // 2. Chạy song song tất cả các request cùng lúc thay vì chia chunk chậm chạp
+      const allPromises = [];
+      for (let i = 0; i < batchCount; i++) {
+        allPromises.push(fetchSingleBatch(i));
       }
+
+      // Thực thi song song tất cả các request
+      const allResults = await Promise.all(allPromises);
+      
+      // Lọc bỏ những kết quả null và thêm vào danh sách chính
+      const validBatches = allResults.filter(batch => batch !== null);
+      tempBatches.push(...validBatches);
 
       setMyBatches(tempBatches);
 

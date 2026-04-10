@@ -11,7 +11,7 @@ const Cart = () => {
   const navigate = useNavigate();
   
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('direct'); // 'direct', 'online', or 'vnpay'
+  const [paymentMethod, setPaymentMethod] = useState('direct'); // 'direct', 'online', 'vnpay', 'momo', 'zalopay'
 
   // LOGIC THANH TOÁN (FIFO)
   const handleCheckout = async () => {
@@ -22,6 +22,8 @@ const Cart = () => {
       case 'direct': methodText = "Trực tiếp tại quầy"; break;
       case 'online': methodText = "Thanh toán Online (Thẻ)"; break;
       case 'vnpay': methodText = "Cổng thanh toán VNPay"; break;
+      case 'momo': methodText = "Ví điện tử MoMo"; break;
+      case 'zalopay': methodText = "Ví điện tử ZaloPay"; break;
       default: methodText = "Chưa rõ";
     }
 
@@ -29,10 +31,40 @@ const Cart = () => {
 
     setIsProcessing(true);
 
-    // Giả lập chuyển hướng VNPay
-    if (paymentMethod === 'vnpay') {
-      alert("Đang chuyển hướng đến cổng thanh toán VNPay...");
-      // Trong thực tế, đây là nơi gọi API tạo URL thanh toán và redirect
+    // Xử lý MoMo Payment
+    if (paymentMethod === 'momo') {
+      try {
+        const orderId = "MOMO" + Date.now();
+        // Gọi Edge Function
+        const { data, error } = await supabase.functions.invoke('momo-payment', {
+          body: { 
+            amount: totalAmount, 
+            orderId: orderId,
+            orderInfo: `Thanh toan don hang MediTrack #${orderId}`
+          }
+        });
+
+        if (error) throw error;
+        
+        if (data && data.payUrl) {
+          // Lưu thông tin đơn hàng tạm thời vào đơn hàng (chưa thanh toán)
+          // Trong thực tế nên tạo đơn hàng với status 'pending' trước
+          window.location.href = data.payUrl;
+          return;
+        } else {
+          throw new Error(data?.message || "Không nhận được link thanh toán MoMo");
+        }
+      } catch (err) {
+        console.error("Lỗi MoMo:", err);
+        alert("Lỗi kết nối MoMo: " + err.message);
+        setIsProcessing(false);
+        return;
+      }
+    }
+
+    // Giả lập chuyển hướng thanh toán khác
+    if (paymentMethod === 'vnpay' || paymentMethod === 'zalopay') {
+      alert(`Đang chuyển hướng đến cổng thanh toán ${methodText}...`);
       await new Promise(resolve => setTimeout(resolve, 1500)); 
     }
 
@@ -243,7 +275,7 @@ const Cart = () => {
                 }`}
               >
                 <Wallet size={24} className="mb-1" />
-                <span className="text-xs font-bold">Trực tiếp</span>
+                <span className="text-xs font-bold text-center">Trực tiếp</span>
               </button>
 
               <button
@@ -255,7 +287,7 @@ const Cart = () => {
                 }`}
               >
                 <CreditCard size={24} className="mb-1" />
-                <span className="text-xs font-bold">Thẻ Online</span>
+                <span className="text-xs font-bold text-center">Thẻ Online</span>
               </button>
 
               <button
@@ -267,7 +299,31 @@ const Cart = () => {
                 }`}
               >
                 <div className="w-6 h-6 mb-1 bg-red-500 text-white flex items-center justify-center rounded text-[8px] font-black italic">VNPAY</div>
-                <span className="text-xs font-bold">VNPay</span>
+                <span className="text-xs font-bold text-center">VNPay</span>
+              </button>
+
+              <button
+                onClick={() => setPaymentMethod('momo')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                  paymentMethod === 'momo'
+                    ? 'border-[#A50064] bg-pink-50 text-[#A50064]'
+                    : 'border-gray-100 hover:border-gray-200 text-gray-500'
+                }`}
+              >
+                <div className="w-6 h-6 mb-1 bg-[#A50064] text-white flex items-center justify-center rounded-lg text-[8px] font-black italic">MoMo</div>
+                <span className="text-xs font-bold text-center">Ví MoMo</span>
+              </button>
+
+              <button
+                onClick={() => setPaymentMethod('zalopay')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                  paymentMethod === 'zalopay'
+                    ? 'border-[#008fe5] bg-blue-50 text-[#008fe5]'
+                    : 'border-gray-100 hover:border-gray-200 text-gray-500'
+                }`}
+              >
+                <div className="w-6 h-6 mb-1 bg-[#008fe5] text-white flex items-center justify-center rounded-lg text-[8px] font-black italic">Zalo</div>
+                <span className="text-xs font-bold text-center">ZaloPay</span>
               </button>
             </div>
           </div>

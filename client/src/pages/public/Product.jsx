@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
-import { ShoppingCart, Clock, Pill, ShieldAlert, ChevronRight, FileText, X, ChevronLeft } from 'lucide-react';
+import { ShoppingCart, Clock, Pill, ShieldAlert, ChevronRight, FileText, X, ChevronLeft, Search, MoreHorizontal, ExternalLink } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
 const sections = [
@@ -36,6 +36,7 @@ const Product = () => {
   const [qty, setQty] = useState(1);
   const [selectedImage, setSelectedImage] = useState(null);
   const [showRelatedDocs, setShowRelatedDocs] = useState(false);
+  const [showBatchList, setShowBatchList] = useState(false);
 
   // Lấy danh sách ảnh không trùng lặp
   const allImages = product ? [...new Set([product.image_url, ...(Array.isArray(product.image_urls) ? product.image_urls : [])].filter(Boolean))] : [];
@@ -150,6 +151,61 @@ const Product = () => {
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <Pill size={22} className="text-primary" /> {product.name}
             </h1>
+
+            {/* Link tra cứu mã lô Blockchain */}
+            <div className="mt-1 relative">
+              {product.batches && product.batches.length > 0 ? (
+                <div className="flex items-center gap-2">
+                  <Link 
+                    to={`/tracking?id=${product.batches[product.batches.length - 1].id}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100 transition-all hover:shadow-sm group"
+                  >
+                    <Search size={14} className="group-hover:scale-110 transition-transform" />
+                    Chi tiết lô #{product.batches[product.batches.length - 1].id} (Blockchain)
+                  </Link>
+                  
+                  {product.batches.length > 1 && (
+                    <button 
+                      onClick={() => setShowBatchList(!showBatchList)}
+                      className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-primary"
+                      title="Xem các lô khác"
+                    >
+                      <MoreHorizontal size={18} />
+                    </button>
+                  )}
+
+                  {/* Dropdown danh sách mã lô */}
+                  {showBatchList && (
+                    <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="px-3 py-1.5 border-b border-gray-50 mb-1">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Danh sách mã lô</span>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                        {[...product.batches].reverse().map((batch) => (
+                          <Link
+                            key={batch.id}
+                            to={`/tracking?id=${batch.id}`}
+                            className="flex items-center justify-between px-3 py-2 hover:bg-blue-50 transition-colors group"
+                          >
+                            <span className="text-xs font-bold text-gray-700 group-hover:text-primary">Lô #{batch.id}</span>
+                            <ExternalLink size={12} className="text-gray-300 group-hover:text-primary" />
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link 
+                  to="/tracking"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-primary bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 transition-all group"
+                >
+                  <Search size={14} className="group-hover:scale-110 transition-transform" />
+                  Sản phẩm chưa có mã lô (Blockchain)
+                </Link>
+              )}
+            </div>
+
             <div className="flex items-center gap-3 mt-3">
               <span className="text-2xl font-bold text-indigo-600">{product.price?.toLocaleString()} ₫</span>
               {product.expiry_months ? (
