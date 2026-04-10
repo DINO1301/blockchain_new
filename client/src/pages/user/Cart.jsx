@@ -16,12 +16,25 @@ const Cart = () => {
   const [paymentMethod, setPaymentMethod] = useState('direct'); // 'direct', 'online'
   const [onlineProvider, setOnlineProvider] = useState('momo'); // Mặc định là momo khi chọn online
 
+  // Xử lý khi trang được khôi phục từ cache trình duyệt (nút Back)
+  useEffect(() => {
+    const handlePageShow = (event) => {
+      if (event.persisted) {
+        setIsProcessing(false);
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   // Xử lý kết quả trả về từ MoMo
   useEffect(() => {
     const resultCode = searchParams.get('resultCode');
     const orderId = searchParams.get('orderId');
 
     if (resultCode !== null) {
+      setIsProcessing(false); // Dừng vòng xoay ngay lập tức khi nhận kết quả
+      
       if (resultCode === '0') {
         // Thành công: Xóa giỏ hàng và hiển thị thông báo
         setPaymentStatus({
