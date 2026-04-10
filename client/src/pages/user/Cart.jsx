@@ -78,15 +78,15 @@ const Cart = () => {
 
     if (paymentMethod === 'online' && onlineProvider === 'momo') {
       try {
-        // Tạo mã đơn hàng siêu độc nhất: DINO + thời gian (ms) + 4 số ngẫu nhiên
-        const uniqueId = Date.now() + Math.floor(Math.random() * 9999);
-        const orderId = "DINO" + uniqueId; 
+        // Tạo mã đơn hàng siêu độc nhất để tránh lỗi 1005 trên hệ thống MoMo Test
+        const randomStr = Math.random().toString(36).substring(2, 10).toUpperCase();
+        const orderId = "QR" + Date.now() + randomStr; 
         
         const { data, error } = await supabase.functions.invoke('momo-payment', {
           body: { 
             amount: totalAmount, 
             orderId: orderId,
-            orderInfo: `Thanh toan don hang MediTrack #${orderId}`,
+            orderInfo: `Thanh toan don hang #${orderId}`,
             redirectUrl: "https://blockchain-new-five.vercel.app/cart"
           }
         });

@@ -28,7 +28,7 @@ serve(async (req) => {
     const secretKey = 'K951B6PE1waDMi640xX08PD3vg6EkVlz'; 
     const partnerCode = 'MOMO'; 
     const redirectUrl = clientRedirectUrl || 'https://blockchain-new-five.vercel.app/cart'; 
-    const ipnUrl = 'https://webhook.site/b3088a6a-2d17-4f8d-a383-71389a6c600b'; 
+    const ipnUrl = redirectUrl; // Sử dụng cùng URL để đảm bảo tính hợp lệ trong môi trường test
     const requestType = "captureWallet"; 
     const extraData = ''; 
 
