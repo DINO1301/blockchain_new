@@ -98,8 +98,34 @@ const UserManager = () => {
         if (error) throw error;
         alert("Cập nhật thông tin thành công");
       } else {
-        // Chức năng thêm mới người dùng (Cần Admin Auth - Demo đơn giản qua profiles)
-        alert("Tính năng thêm mới yêu cầu quyền Admin Auth chuyên sâu. Vui lòng sử dụng chức năng Đăng ký bên ngoài.");
+        // THÊM MỚI NGƯỜI DÙNG (Giả lập cho UAT)
+        // Vì Supabase Client không thể tạo User Auth trực tiếp mà không có Service Role Key,
+        // Chúng ta sẽ tạo một bản ghi trong bảng 'users'. 
+        // User này sẽ có thể đăng nhập sau khi họ tự đăng ký bằng Email này.
+        
+        if (!formData.email.trim()) throw new Error("Vui lòng nhập email");
+
+        // Kiểm tra xem email đã tồn tại trong bảng users chưa
+        const { data: existing } = await supabase
+          .from('users')
+          .select('email')
+          .eq('email', formData.email)
+          .single();
+        
+        if (existing) throw new Error("Email này đã tồn tại trong hệ thống!");
+
+        const { error } = await supabase
+          .from('users')
+          .insert([{
+            id: crypto.randomUUID(), // Tạo ID giả cho profile
+            email: formData.email,
+            full_name: formData.full_name,
+            role: formData.role,
+            created_at: new Date().toISOString()
+          }]);
+
+        if (error) throw error;
+        alert("Đã thêm thành viên mới vào danh sách quản lý!");
       }
       
       setIsModalOpen(false);
@@ -137,6 +163,17 @@ const UserManager = () => {
           </h1>
           <p className="text-gray-500 font-medium mt-1">Quản lý phân quyền và thông tin người dùng hệ thống</p>
         </div>
+        <button 
+          onClick={() => {
+            setEditingUser(null);
+            setFormData({ email: '', full_name: '', role: 'user' });
+            setIsModalOpen(true);
+          }}
+          className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-primary/20 active:scale-95"
+        >
+          <UserPlus size={20} />
+          Thêm thành viên
+        </button>
       </div>
 
       {/* Filters & Search */}
@@ -327,11 +364,25 @@ const UserManager = () => {
             
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Email (Không thể sửa)</label>
-                <div className="px-4 py-3 bg-gray-100 text-gray-500 rounded-xl text-sm font-medium border border-gray-200 flex items-center gap-3">
-                   <Mail size={16} />
-                   {formData.email}
-                </div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Email {editingUser ? '(Không thể sửa)' : '(Bắt buộc)'}</label>
+                {editingUser ? (
+                  <div className="px-4 py-3 bg-gray-100 text-gray-500 rounded-xl text-sm font-medium border border-gray-200 flex items-center gap-3">
+                    <Mail size={16} />
+                    {formData.email}
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input 
+                      type="email"
+                      required
+                      placeholder="VD: user@example.com"
+                      className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
