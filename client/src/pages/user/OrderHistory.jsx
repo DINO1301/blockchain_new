@@ -107,6 +107,7 @@ const OrderHistory = () => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-700';
       case 'paid': return 'bg-blue-100 text-blue-700';
+      case 'paid_online': return 'bg-indigo-100 text-indigo-700';
       case 'paid_cash': return 'bg-emerald-100 text-emerald-700';
       case 'shipping': return 'bg-blue-100 text-blue-700';
       default: return 'bg-yellow-100 text-yellow-700';
@@ -117,6 +118,7 @@ const OrderHistory = () => {
     switch (status) {
       case 'completed': return 'Hoàn thành';
       case 'paid': return 'Đã thanh toán (Online)';
+      case 'paid_online': return 'Đã thanh toán Online thành công';
       case 'paid_cash': return 'Đã thanh toán thành công';
       case 'shipping': return 'Đang giao';
       default: return 'Chờ xử lý';
