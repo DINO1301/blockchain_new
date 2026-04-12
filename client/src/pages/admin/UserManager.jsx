@@ -28,7 +28,7 @@ const UserManager = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -57,7 +57,7 @@ const UserManager = () => {
 
     try {
       const { error } = await supabase
-        .from('profiles')
+        .from('users')
         .delete()
         .eq('id', id);
 
@@ -79,7 +79,7 @@ const UserManager = () => {
       if (editingUser) {
         // Cập nhật profile
         const { error } = await supabase
-          .from('profiles')
+          .from('users')
           .update({
             full_name: formData.full_name,
             role: formData.role
