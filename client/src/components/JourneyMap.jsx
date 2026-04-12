@@ -19,17 +19,23 @@ const JourneyMap = ({ timeline }) => {
   // Coordinates mapping for some common locations (mock data for now)
   // In a real app, these should come from the timeline events or a database
   const locationCoords = {
-    "Noi Bai International Airport": [21.2187, 105.8042],
-    "Tan Son Nhat International Airport": [10.8185, 106.6588],
-    "CÔNG TY TNHH ADC": [10.0357, 105.7797], // Example Cần Thơ location
-    "Đã sản xuất tại nhà máy: CÔNG TY TNHH ADC": [10.0357, 105.7797],
+    "Noi Bai": [21.2187, 105.8042],
+    "Tan Son Nhat": [10.8185, 106.6588],
+    "ADC": [10.0357, 105.7797],
+    "COSMECCA KOREA": [37.0315, 127.1764], // Chungcheongbuk-do, Korea (Headquarters)
     "Hà Nội": [21.0285, 105.8542],
-    "TP. Hồ Chí Minh": [10.8231, 106.6297],
+    "Hồ Chí Minh": [10.8231, 106.6297],
+    "Cần Thơ": [10.0371, 105.7882],
+    "Đà Nẵng": [16.0544, 108.2022],
+    "Hải Phòng": [20.8449, 106.6881],
   };
 
   const getCoords = (description) => {
+    if (!description) return null;
+    const descLower = description.toLowerCase();
+    
     for (const key in locationCoords) {
-      if (description.includes(key)) return locationCoords[key];
+      if (descLower.includes(key.toLowerCase())) return locationCoords[key];
     }
     return null;
   };

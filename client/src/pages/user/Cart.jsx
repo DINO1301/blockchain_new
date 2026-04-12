@@ -10,6 +10,7 @@ const Cart = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const isProcessingOrder = React.useRef(false); // Ref để chống lặp đơn hàng
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null); // { type: 'success' | 'error' | 'cancel', message: string }
@@ -38,7 +39,11 @@ const Cart = () => {
       setIsProcessing(false); 
       
       if (resultCode === '0') {
-        // Lấy dữ liệu giỏ hàng từ context hoặc localStorage (phòng trường hợp redirect làm mất state)
+        // Kiểm tra xem đơn hàng này đang được xử lý chưa để tránh lặp
+        if (isProcessingOrder.current) return;
+        isProcessingOrder.current = true;
+
+        // Lấy dữ liệu giỏ hàng từ context hoặc localStorage
         const savedPendingOrder = localStorage.getItem('pending_momo_order');
         const pendingData = savedPendingOrder ? JSON.parse(savedPendingOrder) : null;
         const itemsToProcess = cartItems.length > 0 ? cartItems : (pendingData?.items || []);
