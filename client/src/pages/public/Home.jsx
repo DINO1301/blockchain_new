@@ -155,12 +155,12 @@ const Home = () => {
       </div>
 
       {/* --- GÓC SỨC KHỎE SECTION --- */}
-      <div className="bg-white py-16">
+      <div className="bg-[#f0f7ff] py-16">
         <div className="max-w-7xl mx-auto px-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-primary">
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm">
                 <BookOpen size={24} />
               </div>
               <h2 className="text-2xl font-black text-gray-900">Góc sức khỏe</h2>
@@ -174,7 +174,7 @@ const Home = () => {
           {/* Categories */}
           <div className="flex flex-wrap gap-2 mb-10">
             {['Dinh dưỡng', 'Phòng chữa bệnh', 'Người cao tuổi', 'Khỏe đẹp', 'Mẹ và bé', 'Giới tính', 'Tin tức khuyến mại', 'Tin tức sức khỏe'].map((cat, i) => (
-              <button key={i} className="px-5 py-2 rounded-full bg-gray-100 text-gray-600 text-sm font-bold hover:bg-primary hover:text-white transition-all">
+              <button key={i} className="px-5 py-2 rounded-full bg-white text-gray-600 text-sm font-bold hover:bg-primary hover:text-white transition-all shadow-sm">
                 {cat}
               </button>
             ))}
@@ -185,7 +185,7 @@ const Home = () => {
             <div className="lg:col-span-7 group cursor-pointer">
               <div className="rounded-[2rem] overflow-hidden mb-6 aspect-video relative shadow-xl">
                 <img 
-                  src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=1000" 
+                  src="https://plus.unsplash.com/premium_photo-1661281397737-9b5d75b52beb?q=80&w=1000&auto=format&fit=crop" 
                   alt="Health Banner" 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
@@ -206,23 +206,23 @@ const Home = () => {
               {[
                 {
                   title: "MediTrack ĐỒNG HÀNH TẦM SOÁT RUNG NHĨ - PHÁT HIỆN SỚM NGUY CƠ ĐỘT QUỴ...",
-                  img: "https://images.unsplash.com/photo-1505751172107-167882269894?auto=format&fit=crop&q=80&w=300"
+                  img: "https://images.unsplash.com/photo-1631815587646-b85a1bb027e1?q=80&w=300&auto=format&fit=crop"
                 },
                 {
                   title: "MediTrack cùng đối tác triển khai tiêm chủng miễn phí cho người dân miền Trung...",
-                  img: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=300"
+                  img: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=300&auto=format&fit=crop"
                 },
                 {
                   title: "MediTrack hợp tác các hãng dược Nhật Bản ra mắt bộ câu hỏi tầm soát khô mắt chuẩn y khoa...",
-                  img: "https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&q=80&w=300"
+                  img: "https://images.unsplash.com/photo-1559757175-5700dde675bc?q=80&w=300&auto=format&fit=crop"
                 },
                 {
                   title: "MediTrack phối hợp STADA Pymepharco lan tỏa kiến thức y khoa về phòng tránh thừa cân, béo phì...",
-                  img: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=80&w=300"
+                  img: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=300&auto=format&fit=crop"
                 },
                 {
                   title: "MediTrack đóng góp sáng kiến về y tế số tại Diễn đàn Kinh tế Thụy Sĩ – Việt Nam 2025",
-                  img: "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&q=80&w=300"
+                  img: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=300&auto=format&fit=crop"
                 }
               ].map((news, i) => (
                 <div key={i} className="flex gap-4 group cursor-pointer">
