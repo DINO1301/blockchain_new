@@ -77,13 +77,13 @@ function App() {
             <span className="h-8 w-8 bg-primary rounded flex items-center justify-center text-white font-bold">M</span>
             <span className="font-heading font-extrabold text-xl tracking-tight text-primary">MediTrack</span>
           </Link>
-          <div className="hidden lg:flex items-center gap-10 overflow-x-auto no-scrollbar py-2">
+          <div className="hidden lg:flex items-center gap-2 xl:gap-5 py-2">
             <Link to="/" className={navClass('/')}>Trang chủ</Link>
             <Link to="/shop" className={navClass('/shop')}>Shop</Link>
             <Link to="/tracking" className={navClass('/tracking')}>Tra cứu</Link>
             <Link to="/orders" className={navClass('/orders')}>Đơn hàng</Link>
             {user && role === "admin" && (
-              <div className="flex items-center gap-10 pl-10 border-l border-gray-200">
+              <div className="flex items-center gap-2 xl:gap-5 pl-3 xl:pl-5 border-l border-gray-200">
                 <Link to="/admin/dashboard" className={navClass('/admin/dashboard')}>Sản xuất</Link>
                 <Link to="/admin/inventory" className={navClass('/admin/inventory')}>Kho hàng</Link>
                 <Link to="/admin/products" className={navClass('/admin/products')}>Sản phẩm</Link>
@@ -91,30 +91,30 @@ function App() {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-4 shrink-0 ml-auto">
-            <Link to="/cart" className="relative p-2 text-gray-600 hover:text-primary transition mr-1">
+          <div className="flex items-center gap-3 shrink-0 ml-auto">
+            <Link to="/cart" className="relative p-2 text-gray-600 hover:text-primary transition">
               <ShoppingCart size={22} />
               {totalItems > 0 && <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">{totalItems}</span>}
             </Link>
             <div className="hidden sm:block">
               {currentAccount ? (
-                 <div className="hidden xl:flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-full font-mono text-xs border border-green-100">
-                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                 <div className="hidden xl:flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full font-mono text-[10px] border border-emerald-100 shadow-sm">
+                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                    {currentAccount.slice(0,6)}...{currentAccount.slice(-4)}
                  </div>
-              ) : (user && role !== 'user' && <button onClick={connectWallet} className="text-xs font-bold text-primary hover:text-blue-700 hover:underline">Liên kết Ví</button>)}
+              ) : (user && role !== 'user' && <button onClick={connectWallet} className="text-xs font-bold text-primary hover:text-blue-700 hover:underline">Ví</button>)}
             </div>
-            <div className="hidden lg:flex items-center gap-3 pl-4 border-l border-gray-200">
+            <div className="hidden lg:flex items-center gap-3 pl-3 border-l border-gray-200">
               {user ? (
                 <>
-                  <div className="text-right hidden xl:block leading-tight">
-                    <p className="text-sm font-bold text-gray-800">{user.full_name}</p>
-                    <div className="flex items-center gap-1 justify-end">
-                      {role === 'admin' && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 rounded uppercase border border-emerald-100">Admin on-chain</span>}
-                      <span className="text-[10px] text-gray-500 font-bold uppercase">{role || 'User'}</span>
+                  <div className="text-right hidden xl:block leading-tight max-w-[120px]">
+                    <p className="text-xs font-black text-gray-900 truncate">{user.full_name}</p>
+                    <div className="flex items-center gap-1 justify-end mt-0.5">
+                      {role === 'admin' && <span className="text-[8px] font-black text-white bg-emerald-500 px-1 rounded uppercase">On-chain</span>}
+                      <span className="text-[8px] text-gray-400 font-black uppercase tracking-tighter">{role || 'User'}</span>
                     </div>
                   </div>
-                  <button onClick={handleLogout} className="bg-gray-100/80 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold transition border border-gray-200">Đăng xuất</button>
+                  <button onClick={handleLogout} className="bg-gray-100/80 hover:bg-red-50 hover:text-red-600 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all border border-gray-200 hover:border-red-100">Đăng xuất</button>
                 </>
               ) : <Link to="/login" className="bg-primary hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-bold transition shadow-sm">Đăng nhập</Link>}
             </div>
