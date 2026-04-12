@@ -120,18 +120,21 @@ const UserManager = () => {
         if (!formData.email.trim()) throw new Error("Vui lòng nhập email");
 
         // Kiểm tra xem email đã tồn tại trong bảng users chưa
-        const { data: existing } = await supabase
+        const { data: existing, error: checkError } = await supabase
           .from('users')
-          .select('email')
+          .select('*')
           .eq('email', formData.email)
-          .single();
+          .maybeSingle();
+        
+        if (checkError) {
+          console.error("Lỗi kiểm tra email:", checkError);
+        }
         
         if (existing) throw new Error("Email này đã tồn tại trong hệ thống!");
 
         const { error } = await supabase
           .from('users')
           .insert([{
-            id: crypto.randomUUID(), // Tạo ID giả cho profile
             email: formData.email,
             full_name: formData.full_name,
             role: formData.role,
