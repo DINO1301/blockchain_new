@@ -52,7 +52,19 @@ const UserManager = () => {
     }
   };
 
-  const handleEdit = (user) => {
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingUser(null);
+    setFormData({ email: '', full_name: '', role: 'user', password: '' });
+  };
+
+  const handleOpenAddModal = () => {
+     setEditingUser(null);
+     setFormData({ email: '', full_name: '', role: 'user', password: '' });
+     setIsModalOpen(true);
+   };
+
+   const handleEdit = (user) => {
     setEditingUser(user);
     setFormData({
       email: user.email || '',
@@ -130,8 +142,7 @@ const UserManager = () => {
         alert("Đã thêm thành viên mới vào danh sách quản lý!");
       }
       
-      setIsModalOpen(false);
-      setFormData({ email: '', full_name: '', role: 'user', password: '' });
+      handleCloseModal();
       fetchUsers();
     } catch (error) {
       console.error("Lỗi lưu người dùng:", error);
@@ -167,11 +178,7 @@ const UserManager = () => {
           <p className="text-gray-500 font-medium mt-1">Quản lý phân quyền và thông tin người dùng hệ thống</p>
         </div>
         <button 
-          onClick={() => {
-            setEditingUser(null);
-            setFormData({ email: '', full_name: '', role: 'user', password: '' });
-            setIsModalOpen(true);
-          }}
+          onClick={handleOpenAddModal}
           className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-primary/20 active:scale-95"
         >
           <UserPlus size={20} />
@@ -353,19 +360,19 @@ const UserManager = () => {
       {/* Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6">
-          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsModalOpen(false)}></div>
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={handleCloseModal}></div>
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
                 {editingUser ? <Edit3 size={24} className="text-primary" /> : <UserPlus size={24} className="text-primary" />}
                 {editingUser ? 'Sửa Thành Viên' : 'Thêm Thành Viên'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-xl transition-colors text-gray-400">
+              <button onClick={handleCloseModal} className="p-2 hover:bg-gray-200 rounded-xl transition-colors text-gray-400">
                 <XCircle size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            <form onSubmit={handleSubmit} className="p-6 space-y-5" autoComplete="off">
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Email {editingUser ? '(Không thể sửa)' : '(Bắt buộc)'}</label>
                 {editingUser ? (
@@ -379,6 +386,7 @@ const UserManager = () => {
                     <input 
                       type="email"
                       required
+                      autoComplete="off"
                       placeholder="VD: user@example.com"
                       className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                       value={formData.email}
@@ -395,6 +403,7 @@ const UserManager = () => {
                   <input 
                     type="text"
                     required
+                    autoComplete="off"
                     className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                     value={formData.full_name}
                     onChange={(e) => setFormData({...formData, full_name: e.target.value})}
@@ -410,6 +419,7 @@ const UserManager = () => {
                     <input 
                       type="password"
                       required={!editingUser}
+                      autoComplete="new-password"
                       placeholder="Nhập ít nhất 6 ký tự"
                       className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                       value={formData.password}
@@ -448,7 +458,7 @@ const UserManager = () => {
               <div className="pt-4 flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={handleCloseModal}
                   className="flex-1 px-6 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-all active:scale-95"
                 >
                   Hủy bỏ
