@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Search, ShoppingCart, Activity, Database, Lock } from 'lucide-react';
+import { ShieldCheck, Search, ShoppingCart, Activity, Database, Lock, BookOpen, ChevronRight } from 'lucide-react';
 
 const Home = () => {
   return (
@@ -154,23 +154,92 @@ const Home = () => {
         </div>
       </div>
 
-      {/* --- CTA SECTION (Kêu gọi hành động) --- */}
-      <div className="bg-brand-lightBlue py-20 text-center text-brand-navy relative overflow-hidden">
-        <div className="relative z-10 max-w-3xl mx-auto px-6">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Sẵn sàng trải nghiệm công nghệ mới?</h2>
-            <p className="text-blue-700 mb-8 text-lg">
-                Tham gia cùng hàng ngàn người dùng đang bảo vệ sức khỏe của mình bằng công nghệ Blockchain.
-            </p>
-            <div className="flex justify-center gap-4">
-                <Link to="/shop" className="px-8 py-3 bg-transparent border border-blue-600 hover:bg-blue-50 text-brand-navy rounded-lg font-bold transition">
-                    Dạo quanh cửa hàng
-                </Link>
+      {/* --- GÓC SỨC KHỎE SECTION --- */}
+      <div className="bg-white py-16">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-primary">
+                <BookOpen size={24} />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900">Góc sức khỏe</h2>
+              <span className="text-gray-300 mx-2">|</span>
+              <Link to="#" className="text-blue-600 font-bold text-sm hover:underline flex items-center gap-1">
+                Xem tất cả <ChevronRight size={16} />
+              </Link>
             </div>
+          </div>
+
+          {/* Categories */}
+          <div className="flex flex-wrap gap-2 mb-10">
+            {['Dinh dưỡng', 'Phòng chữa bệnh', 'Người cao tuổi', 'Khỏe đẹp', 'Mẹ và bé', 'Giới tính', 'Tin tức khuyến mại', 'Tin tức sức khỏe'].map((cat, i) => (
+              <button key={i} className="px-5 py-2 rounded-full bg-gray-100 text-gray-600 text-sm font-bold hover:bg-primary hover:text-white transition-all">
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid lg:grid-cols-12 gap-10">
+            {/* Main Article */}
+            <div className="lg:col-span-7 group cursor-pointer">
+              <div className="rounded-[2rem] overflow-hidden mb-6 aspect-video relative shadow-xl">
+                <img 
+                  src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=1000" 
+                  alt="Health Banner" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute top-4 left-4 bg-primary text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
+                  Truyền thông
+                </div>
+              </div>
+              <h3 className="text-3xl font-black text-gray-900 leading-tight mb-4 group-hover:text-primary transition-colors">
+                Lần đầu tiên tại Việt Nam: MediTrack ra mắt "Ví Khỏe Nhà Ta" – Ví sức khỏe tích thưởng cho cả nhà cùng hưởng
+              </h3>
+              <p className="text-gray-500 leading-relaxed text-lg font-medium">
+                Duy nhất tại hệ thống MediTrack, chương trình tích lũy điểm thưởng sức khỏe dành riêng cho hộ gia đình, mang lại lợi ích chăm sóc sức khỏe toàn diện và tiết kiệm cho mọi thành viên.
+              </p>
+            </div>
+
+            {/* Side Articles */}
+            <div className="lg:col-span-5 space-y-8">
+              {[
+                {
+                  title: "MediTrack ĐỒNG HÀNH TẦM SOÁT RUNG NHĨ - PHÁT HIỆN SỚM NGUY CƠ ĐỘT QUỴ...",
+                  img: "https://images.unsplash.com/photo-1505751172107-167882269894?auto=format&fit=crop&q=80&w=300"
+                },
+                {
+                  title: "MediTrack cùng đối tác triển khai tiêm chủng miễn phí cho người dân miền Trung...",
+                  img: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=300"
+                },
+                {
+                  title: "MediTrack hợp tác các hãng dược Nhật Bản ra mắt bộ câu hỏi tầm soát khô mắt chuẩn y khoa...",
+                  img: "https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&q=80&w=300"
+                },
+                {
+                  title: "MediTrack phối hợp STADA Pymepharco lan tỏa kiến thức y khoa về phòng tránh thừa cân, béo phì...",
+                  img: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=80&w=300"
+                },
+                {
+                  title: "MediTrack đóng góp sáng kiến về y tế số tại Diễn đàn Kinh tế Thụy Sĩ – Việt Nam 2025",
+                  img: "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&q=80&w=300"
+                }
+              ].map((news, i) => (
+                <div key={i} className="flex gap-4 group cursor-pointer">
+                  <div className="w-32 h-20 rounded-2xl overflow-hidden flex-shrink-0 shadow-md">
+                    <img src={news.img} alt="news" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-primary uppercase tracking-widest">Truyền thông</p>
+                    <h4 className="text-sm font-bold text-gray-800 leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                      {news.title}
+                    </h4>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        
-        {/* Abstract Circles Background */}
-        <div className="absolute top-0 left-0 w-64 h-64 bg-blue-300 rounded-full blur-[100px] opacity-20"></div>
-        <div className="absolute bottom-0 right-0 w-64 h-64 bg-indigo-300 rounded-full blur-[100px] opacity-20"></div>
       </div>
 
     </div>

@@ -106,24 +106,16 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Cột 5: Kết nối & QR */}
+        {/* Cột 5: Kết nối */}
         <div>
           <h4 className="text-white font-bold mb-6 uppercase text-sm tracking-wider">Kết nối với chúng tôi</h4>
-          <div className="flex gap-4 mb-10">
+          <div className="flex gap-4">
             <Link to="#" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors">
               <Facebook size={20} />
             </Link>
             <Link to="#" className="w-10 h-10 bg-blue-400 rounded-full flex items-center justify-center text-white hover:bg-blue-500 transition-colors">
               <span className="font-black italic text-sm">Zalo</span>
             </Link>
-          </div>
-
-          <h4 className="text-white font-bold mb-4 uppercase text-sm tracking-wider">Tải ứng dụng MediTrack</h4>
-          <div className="bg-white p-3 rounded-2xl w-32 h-32 flex items-center justify-center shadow-lg">
-            {/* Giả lập QR Code bằng div */}
-            <div className="w-full h-full bg-gray-100 rounded flex items-center justify-center text-[10px] text-gray-400 font-bold text-center leading-tight">
-              MediTrack<br/>QR Code
-            </div>
           </div>
         </div>
       </div>
