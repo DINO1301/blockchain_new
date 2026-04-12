@@ -31,83 +31,92 @@ const Cart = () => {
   useEffect(() => {
     const resultCode = searchParams.get('resultCode');
     const orderId = searchParams.get('orderId');
+    const amountFromMoMo = searchParams.get('amount');
 
     if (resultCode !== null) {
       console.log("MoMo Result:", resultCode, "Order:", orderId);
       setIsProcessing(false); 
       
       if (resultCode === '0') {
-        // LƯU ĐƠN HÀNG VÀO DATABASE KHI THANH TOÁN ONLINE THÀNH CÔNG
-        const saveOnlineOrder = async () => {
-          try {
-            const orderDetails = []; 
-            const productUpdates = [];
+        // CHỈ LƯU ĐƠN HÀNG NẾU GIỎ HÀNG CÓ ĐỒ (Tránh lỗi reload trang tạo đơn trống)
+        if (cartItems.length > 0) {
+          const saveOnlineOrder = async () => {
+            try {
+              const orderDetails = []; 
+              const productUpdates = [];
 
-            // BƯỚC 1: ĐỌC VÀ TÍNH TOÁN (Giống handleCheckout)
-            for (const item of cartItems) {
-              const { data: productData, error: fetchError } = await supabase
-                .from('products')
-                .select('*')
-                .eq('id', item.id)
-                .single();
-              
-              if (fetchError || !productData) throw new Error(`Sản phẩm "${item.name}" không tồn tại!`);
+              for (const item of cartItems) {
+                const { data: productData, error: fetchError } = await supabase
+                  .from('products')
+                  .select('*')
+                  .eq('id', item.id)
+                  .single();
+                
+                if (fetchError || !productData) throw new Error(`Sản phẩm "${item.name}" không tồn tại!`);
 
-              let currentBatches = productData.batches || [];
-              let remainingQtyToBuy = item.quantity;
-              const newBatches = [];
-              
-              for (const batch of currentBatches) {
-                const currentQty = Number(batch.qty); 
-                if (remainingQtyToBuy > 0 && currentQty > 0) {
-                  const take = Math.min(currentQty, remainingQtyToBuy);
-                  orderDetails.push({
-                    productId: item.id,
-                    productName: item.name,
-                    batchId: batch.id,
-                    quantityTaken: take
-                  });
-                  remainingQtyToBuy -= take;
-                  newBatches.push({ ...batch, qty: currentQty - take });
-                } else {
-                  newBatches.push(batch);
+                let currentBatches = productData.batches || [];
+                let remainingQtyToBuy = item.quantity;
+                const newBatches = [];
+                
+                for (const batch of currentBatches) {
+                  const currentQty = Number(batch.qty); 
+                  if (remainingQtyToBuy > 0 && currentQty > 0) {
+                    const take = Math.min(currentQty, remainingQtyToBuy);
+                    orderDetails.push({
+                      productId: item.id,
+                      productName: item.name,
+                      batchId: batch.id,
+                      quantityTaken: take
+                    });
+                    remainingQtyToBuy -= take;
+                    newBatches.push({ ...batch, qty: currentQty - take });
+                  } else {
+                    newBatches.push(batch);
+                  }
                 }
+                const newTotalStock = newBatches.reduce((sum, b) => sum + Number(b.qty), 0);
+                productUpdates.push({ id: item.id, batches: newBatches, total_stock: newTotalStock });
               }
-              const newTotalStock = newBatches.reduce((sum, b) => sum + Number(b.qty), 0);
-              productUpdates.push({ id: item.id, batches: newBatches, total_stock: newTotalStock });
+
+              for (const update of productUpdates) {
+                await supabase.from('products').update({ batches: update.batches, total_stock: update.total_stock }).eq('id', update.id);
+              }
+
+              // SỬ DỤNG SỐ TIỀN TỪ MOMO HOẶC TỔNG GIỎ HÀNG
+              const finalAmount = amountFromMoMo ? Number(amountFromMoMo) : totalAmount;
+
+              await supabase.from('orders').insert([{
+                user_id: user.id,
+                user_email: user.email,
+                items: cartItems, 
+                batch_details: orderDetails,
+                total_amount: finalAmount,
+                payment_method: 'online',
+                status: 'paid_online',
+                created_at: new Date().toISOString()
+              }]);
+
+              setPaymentStatus({
+                type: 'success',
+                message: 'Thanh toán Online thành công! Đơn hàng đã được ghi nhận.'
+              });
+              clearCart();
+              setTimeout(() => navigate('/orders'), 5000);
+            } catch (err) {
+              console.error("Lỗi lưu đơn hàng online:", err);
+              setPaymentStatus({ type: 'error', message: 'Lỗi ghi nhận đơn hàng: ' + err.message });
             }
+          };
 
-            // BƯỚC 2: CẬP NHẬT DATABASE
-            for (const update of productUpdates) {
-              await supabase.from('products').update({ batches: update.batches, total_stock: update.total_stock }).eq('id', update.id);
-            }
-
-            // BƯỚC 3: TẠO ĐƠN HÀNG VỚI TRẠNG THÁI paid_online
-            await supabase.from('orders').insert([{
-              user_id: user.id,
-              user_email: user.email,
-              items: cartItems, 
-              batch_details: orderDetails,
-              total_amount: totalAmount,
-              payment_method: 'online',
-              status: 'paid_online',
-              created_at: new Date().toISOString()
-            }]);
-
-            setPaymentStatus({
-              type: 'success',
-              message: 'Thanh toán Online thành công! Đơn hàng đã được ghi nhận.'
-            });
-            clearCart();
-            // Đợi 5 giây rồi chuyển hướng
-            setTimeout(() => navigate('/orders'), 5000);
-          } catch (err) {
-            console.error("Lỗi lưu đơn hàng online:", err);
-            setPaymentStatus({ type: 'error', message: 'Lỗi ghi nhận đơn hàng: ' + err.message });
-          }
-        };
-
-        saveOnlineOrder();
+          saveOnlineOrder();
+        } else {
+          // Nếu giỏ hàng trống (do đã lưu rồi hoặc lỗi), chỉ hiển thị thông báo và chuyển hướng
+          setPaymentStatus({
+            type: 'success',
+            message: 'Thanh toán hoàn tất. Đang chuyển hướng về trang đơn hàng...'
+          });
+          setTimeout(() => navigate('/orders'), 3000);
+        }
       } else if (resultCode === '1006' || resultCode === '1005') {
         setPaymentStatus({
           type: 'cancel',
