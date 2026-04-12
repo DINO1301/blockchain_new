@@ -3,7 +3,7 @@ import { supabase } from '../../services/supabase';
 import { 
   User, Mail, Shield, Calendar, Trash2, Edit3, Search, 
   Loader2, CheckCircle, XCircle, UserPlus, Filter, MoreVertical,
-  ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert
+  ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert, Save
 } from 'lucide-react';
 
 const UserManager = () => {
