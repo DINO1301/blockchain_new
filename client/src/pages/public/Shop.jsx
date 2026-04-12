@@ -414,9 +414,9 @@ const Shop = () => {
         <div className="flex-1">
           
           {/* Header danh sách */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="relative flex-1 max-w-md">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4 flex-1 w-full">
+              <div className="relative flex-1">
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input 
                   type="text" 
@@ -426,8 +426,8 @@ const Shop = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="text-sm font-bold text-gray-500 whitespace-nowrap bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100">
-                <span className="text-primary">{filteredProducts.length}</span> sản phẩm
+              <div className="hidden sm:flex items-center text-sm font-bold text-gray-500 whitespace-nowrap bg-gray-50 px-5 py-3.5 rounded-2xl border border-gray-100 shadow-sm">
+                <span className="text-primary mr-1.5 text-lg">{filteredProducts.length}</span> sản phẩm
               </div>
             </div>
           </div>

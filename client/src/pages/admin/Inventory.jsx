@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Web3Context } from '../../context/Web3Context';
 import { useAuth } from '../../context/AuthContext';
-import { Package, Truck, Loader2, QrCode, X, Printer, CheckCircle2, FileText, Upload, Image as LucideImage, ExternalLink, Trash2, Download } from 'lucide-react';
+import { Package, Truck, Loader2, QrCode, X, Printer, CheckCircle2, FileText, Upload, Image as LucideImage, ExternalLink, Trash2, Download, Search, RefreshCw } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -456,30 +456,35 @@ const Inventory = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <Package className="text-primary" /> Kho Hàng Của Tôi
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+            <Package className="text-primary" size={32} />
+            Kho Hàng Của Tôi
           </h1>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <div className="flex gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:w-80">
-              <input
-                type="text"
-                placeholder="Lọc theo tên hoặc ID lô..."
-                className="w-full pl-4 pr-10 py-2 bg-white border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition shadow-sm"
-                value={nameFilter}
-                onChange={(e) => setNameFilter(e.target.value)}
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">⌕</span>
-            </div>
-            <button onClick={fetchMyInventory} className="text-sm text-primary hover:underline whitespace-nowrap">
-              Làm mới danh sách
-            </button>
+        <div className="flex-1 flex flex-col md:flex-row items-center gap-4">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Lọc theo tên hoặc ID lô..."
+              className="w-full pl-11 pr-4 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm font-medium text-sm"
+              value={nameFilter}
+              onChange={(e) => setNameFilter(e.target.value)}
+            />
           </div>
-          <div className="text-[10px] text-gray-500 font-medium">
-            Hiển thị: <strong>{visibleBatches.length}</strong> / <strong>{filteredBatches.length}</strong> lô hàng (Trang {page}/{totalPages})
+          <div className="flex items-center gap-4 whitespace-nowrap">
+            <div className="text-[11px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-4 py-3 rounded-xl border border-gray-100">
+              Hiển thị: <span className="text-primary">{visibleBatches.length}</span> / {filteredBatches.length} lô
+            </div>
+            <button 
+              onClick={fetchMyInventory} 
+              className="p-3 bg-white hover:bg-gray-50 text-primary rounded-xl transition-all border border-gray-100 shadow-sm"
+              title="Làm mới danh sách"
+            >
+              <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+            </button>
           </div>
         </div>
       </div>
