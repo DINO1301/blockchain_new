@@ -38,21 +38,25 @@ const Cart = () => {
       setIsProcessing(false); 
       
       if (resultCode === '0') {
-        // CHỈ LƯU ĐƠN HÀNG NẾU GIỎ HÀNG CÓ ĐỒ (Tránh lỗi reload trang tạo đơn trống)
-        if (cartItems.length > 0) {
+        // Lấy dữ liệu giỏ hàng từ context hoặc localStorage (phòng trường hợp redirect làm mất state)
+        const savedPendingOrder = localStorage.getItem('pending_momo_order');
+        const pendingData = savedPendingOrder ? JSON.parse(savedPendingOrder) : null;
+        const itemsToProcess = cartItems.length > 0 ? cartItems : (pendingData?.items || []);
+
+        if (itemsToProcess.length > 0) {
           const saveOnlineOrder = async () => {
             try {
               const orderDetails = []; 
               const productUpdates = [];
 
-              for (const item of cartItems) {
+              for (const item of itemsToProcess) {
                 const { data: productData, error: fetchError } = await supabase
                   .from('products')
                   .select('*')
                   .eq('id', item.id)
                   .single();
                 
-                if (fetchError || !productData) throw new Error(`Sản phẩm "${item.name}" không tồn tại!`);
+                if (fetchError || !productData) continue;
 
                 let currentBatches = productData.batches || [];
                 let remainingQtyToBuy = item.quantity;
@@ -82,13 +86,12 @@ const Cart = () => {
                 await supabase.from('products').update({ batches: update.batches, total_stock: update.total_stock }).eq('id', update.id);
               }
 
-              // SỬ DỤNG SỐ TIỀN TỪ MOMO HOẶC TỔNG GIỎ HÀNG
-              const finalAmount = amountFromMoMo ? Number(amountFromMoMo) : totalAmount;
+              const finalAmount = amountFromMoMo ? Number(amountFromMoMo) : (pendingData?.totalAmount || totalAmount);
 
               await supabase.from('orders').insert([{
                 user_id: user.id,
                 user_email: user.email,
-                items: cartItems, 
+                items: itemsToProcess, 
                 batch_details: orderDetails,
                 total_amount: finalAmount,
                 payment_method: 'online',
@@ -100,6 +103,8 @@ const Cart = () => {
                 type: 'success',
                 message: 'Thanh toán Online thành công! Đơn hàng đã được ghi nhận.'
               });
+              
+              localStorage.removeItem('pending_momo_order');
               clearCart();
               setTimeout(() => navigate('/orders'), 5000);
             } catch (err) {
@@ -110,7 +115,6 @@ const Cart = () => {
 
           saveOnlineOrder();
         } else {
-          // Nếu giỏ hàng trống (do đã lưu rồi hoặc lỗi), chỉ hiển thị thông báo và chuyển hướng
           setPaymentStatus({
             type: 'success',
             message: 'Thanh toán hoàn tất. Đang chuyển hướng về trang đơn hàng...'
@@ -118,21 +122,22 @@ const Cart = () => {
           setTimeout(() => navigate('/orders'), 3000);
         }
       } else if (resultCode === '1006' || resultCode === '1005') {
+        localStorage.removeItem('pending_momo_order');
         setPaymentStatus({
           type: 'cancel',
           message: 'Giao dịch đã bị hủy. Bạn có thể thử lại hoặc chọn phương thức khác.'
         });
       } else {
+        localStorage.removeItem('pending_momo_order');
         setPaymentStatus({
           type: 'error',
           message: `Giao dịch không thành công (Mã lỗi: ${resultCode}). Vui lòng thử lại.`
         });
       }
 
-      // Xóa params bằng React Router thay vì window.history
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, setSearchParams, clearCart, navigate]);
+  }, [searchParams, setSearchParams, clearCart, navigate, cartItems, user, totalAmount]);
 
   // LOGIC THANH TOÁN (FIFO)
   const handleCheckout = async () => {
@@ -152,6 +157,13 @@ const Cart = () => {
 
     if (paymentMethod === 'online' && onlineProvider === 'momo') {
       try {
+        // LƯU TẠM GIỎ HÀNG VÀO LOCALSTORAGE TRƯỚC KHI REDIRECT
+        localStorage.setItem('pending_momo_order', JSON.stringify({
+          items: cartItems,
+          totalAmount: totalAmount,
+          timestamp: Date.now()
+        }));
+
         // Gửi yêu cầu lên Edge Function - Server sẽ tự tạo orderId duy nhất
         const { data, error } = await supabase.functions.invoke('momo-payment', {
           body: { 
