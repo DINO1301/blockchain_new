@@ -3,7 +3,7 @@ import { supabase } from '../../services/supabase';
 import { 
   User, Mail, Shield, Calendar, Trash2, Edit3, Search, 
   Loader2, CheckCircle, XCircle, UserPlus, Filter, MoreVertical,
-  ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert, Save
+  ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert, Save, Lock
 } from 'lucide-react';
 
 const UserManager = () => {
@@ -16,7 +16,8 @@ const UserManager = () => {
   const [formData, setFormData] = useState({
     email: '',
     full_name: '',
-    role: 'user'
+    role: 'user',
+    password: ''
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -56,7 +57,8 @@ const UserManager = () => {
     setFormData({
       email: user.email || '',
       full_name: user.full_name || '',
-      role: user.role || 'user'
+      role: user.role || 'user',
+      password: '' // Không sửa mật khẩu ở đây
     });
     setIsModalOpen(true);
   };
@@ -129,6 +131,7 @@ const UserManager = () => {
       }
       
       setIsModalOpen(false);
+      setFormData({ email: '', full_name: '', role: 'user', password: '' });
       fetchUsers();
     } catch (error) {
       console.error("Lỗi lưu người dùng:", error);
@@ -166,7 +169,7 @@ const UserManager = () => {
         <button 
           onClick={() => {
             setEditingUser(null);
-            setFormData({ email: '', full_name: '', role: 'user' });
+            setFormData({ email: '', full_name: '', role: 'user', password: '' });
             setIsModalOpen(true);
           }}
           className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-primary/20 active:scale-95"
@@ -354,8 +357,8 @@ const UserManager = () => {
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                <Edit3 size={24} className="text-primary" />
-                Sửa Thành Viên
+                {editingUser ? <Edit3 size={24} className="text-primary" /> : <UserPlus size={24} className="text-primary" />}
+                {editingUser ? 'Sửa Thành Viên' : 'Thêm Thành Viên'}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-xl transition-colors text-gray-400">
                 <XCircle size={24} />
@@ -399,6 +402,23 @@ const UserManager = () => {
                 </div>
               </div>
 
+              {!editingUser && (
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Mật khẩu ban đầu</label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input 
+                      type="password"
+                      required={!editingUser}
+                      placeholder="Nhập ít nhất 6 ký tự"
+                      className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                      value={formData.password}
+                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Vai trò hệ thống</label>
                 <div className="grid grid-cols-2 gap-3">
@@ -439,7 +459,7 @@ const UserManager = () => {
                   className="flex-1 px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50"
                 >
                   {submitting ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                  Lưu thay đổi
+                  {editingUser ? 'Lưu thay đổi' : 'Thêm thành viên'}
                 </button>
               </div>
             </form>
