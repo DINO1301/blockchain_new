@@ -20,9 +20,18 @@ const UserManager = () => {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  // Phân trang
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 7;
+
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  // Reset về trang 1 khi tìm kiếm hoặc lọc
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterRole]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -111,6 +120,12 @@ const UserManager = () => {
     return matchesSearch && matchesRole;
   });
 
+  // Logic phân trang
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+
   return (
     <div className="max-w-[1400px] mx-auto p-4 sm:p-6 font-sans">
       {/* Header Section */}
@@ -191,7 +206,7 @@ const UserManager = () => {
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((u) => (
+                currentUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4">
@@ -251,6 +266,48 @@ const UserManager = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {!loading && filteredUsers.length > 0 && (
+          <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
+            <p className="text-xs font-bold text-gray-500">
+              Hiển thị {indexOfFirstUser + 1} - {Math.min(indexOfLastUser, filteredUsers.length)} trong tổng số {filteredUsers.length} người dùng
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${
+                      currentPage === i + 1
+                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                        : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Edit Modal */}
