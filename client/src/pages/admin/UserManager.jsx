@@ -132,17 +132,62 @@ const UserManager = () => {
         
         if (existing) throw new Error("Email này đã tồn tại trong hệ thống!");
 
-        const { error } = await supabase
-          .from('users')
-          .insert([{
-            email: formData.email,
-            full_name: formData.full_name,
-            role: formData.role,
-            created_at: new Date().toISOString()
-          }]);
+        // THỰC HIỆN ĐĂNG KÝ TÀI KHOẢN (Auth) ĐỂ CÓ ID HỢP LỆ
+        // Để không làm Admin bị logout, chúng ta dùng một instance supabase tạm thời không lưu session
+        const { createClient } = await import('@supabase/supabase-js');
+        const tempSupabase = createClient(
+          import.meta.env.VITE_SUPABASE_URL,
+          import.meta.env.VITE_SUPABASE_ANON_KEY,
+          { auth: { persistSession: false } }
+        );
 
-        if (error) throw error;
-        alert("Đã thêm thành viên mới vào danh sách quản lý!");
+        const { data: authData, error: authError } = await tempSupabase.auth.signUp({
+          email: formData.email,
+          password: formData.password || '123456', // Mật khẩu mặc định nếu admin không nhập
+          options: {
+            data: {
+              full_name: formData.full_name,
+            }
+          }
+        });
+
+        if (authError) throw authError;
+        if (!authData.user) throw new Error("Không thể tạo tài khoản xác thực!");
+
+        // Sau khi có user trong Auth, ta mới insert vào bảng users (nếu trigger chưa tự làm)
+        // Kiểm tra xem profile đã được trigger tự tạo chưa
+        const { data: profileCheck } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', authData.user.id)
+          .maybeSingle();
+        
+        if (!profileCheck) {
+          const { error: profileError } = await supabase
+            .from('users')
+            .insert([{
+              id: authData.user.id,
+              email: formData.email,
+              full_name: formData.full_name,
+              role: formData.role,
+              created_at: new Date().toISOString()
+            }]);
+          
+          if (profileError) {
+            // Nếu lỗi 23505 (đã tồn tại do trigger vừa chạy kịp), ta có thể bỏ qua
+            if (profileError.code !== '23505') throw profileError;
+          }
+        } else {
+          // Nếu đã có profile (do trigger), ta cập nhật role nếu admin chọn khác 'user'
+          if (formData.role !== 'user') {
+            await supabase
+              .from('users')
+              .update({ role: formData.role })
+              .eq('id', authData.user.id);
+          }
+        }
+
+        alert("Đã thêm thành viên mới và tạo tài khoản đăng nhập thành công!");
       }
       
       handleCloseModal();
