@@ -77,13 +77,13 @@ function App() {
             <span className="h-8 w-8 bg-primary rounded flex items-center justify-center text-white font-bold">M</span>
             <span className="font-heading font-extrabold text-xl tracking-tight text-primary">MediTrack</span>
           </Link>
-          <div className="hidden lg:flex items-center gap-6 overflow-x-auto no-scrollbar py-2">
+          <div className="hidden lg:flex items-center gap-10 overflow-x-auto no-scrollbar py-2">
             <Link to="/" className={navClass('/')}>Trang chủ</Link>
             <Link to="/shop" className={navClass('/shop')}>Shop</Link>
             <Link to="/tracking" className={navClass('/tracking')}>Tra cứu</Link>
             <Link to="/orders" className={navClass('/orders')}>Đơn hàng</Link>
             {user && role === "admin" && (
-              <div className="flex items-center gap-6 pl-6 border-l border-gray-200">
+              <div className="flex items-center gap-10 pl-10 border-l border-gray-200">
                 <Link to="/admin/dashboard" className={navClass('/admin/dashboard')}>Sản xuất</Link>
                 <Link to="/admin/inventory" className={navClass('/admin/inventory')}>Kho hàng</Link>
                 <Link to="/admin/products" className={navClass('/admin/products')}>Sản phẩm</Link>
@@ -102,7 +102,7 @@ function App() {
                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                    {currentAccount.slice(0,6)}...{currentAccount.slice(-4)}
                  </div>
-              ) : (user && <button onClick={connectWallet} className="text-xs font-bold text-primary hover:text-blue-700 hover:underline">Liên kết Ví</button>)}
+              ) : (user && role !== 'user' && <button onClick={connectWallet} className="text-xs font-bold text-primary hover:text-blue-700 hover:underline">Liên kết Ví</button>)}
             </div>
             <div className="hidden lg:flex items-center gap-3 pl-4 border-l border-gray-200">
               {user ? (

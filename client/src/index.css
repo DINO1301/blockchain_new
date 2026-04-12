@@ -27,9 +27,22 @@ body {
 }
 
 .nav-link {
-  @apply text-sm font-medium text-gray-600 hover:text-primary transition-colors duration-200 whitespace-nowrap;
+  @apply text-sm font-semibold text-gray-600 hover:text-primary transition-all duration-300 ease-in-out whitespace-nowrap relative py-1;
+}
+
+.nav-link::after {
+  content: '';
+  @apply absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 ease-in-out;
+}
+
+.nav-link:hover::after {
+  @apply w-full;
 }
 
 .active-nav {
-  @apply text-primary font-bold border-b-2 border-primary;
+  @apply text-primary font-bold;
+}
+
+.active-nav::after {
+  @apply w-full;
 }
