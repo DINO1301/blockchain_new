@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }) => {
   // 4. Theo dõi trạng thái đăng nhập
   useEffect(() => {
     let mounted = true;
-
+    let browerLockTimeout = null;
     // Bộ đếm an toàn: Nếu sau 3s không có phản hồi từ Auth, tắt spinner ngay
     const globalTimeout = setTimeout(() => {
       if (mounted && loading) {
@@ -87,16 +87,11 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
-      console.log("Auth Event:", event);
-      
       if (session) {
         // CƠ CHẾ GUARD: Nếu đang xử lý hoặc session cũ trùng, chặn ngay
         if (isAuthProcessing.current) {
-          console.log("⏳ Đang xử lý Auth, bỏ qua sự kiện lặp.");
           return;
         }
-
-        clearTimeout(globalTimeout);
         
         // Chỉ xử lý nếu có User mới hoặc sự kiện quan trọng
         const isNewUser = currentSessionUserId.current !== session.user.id;
@@ -107,7 +102,7 @@ export const AuthProvider = ({ children }) => {
           currentSessionUserId.current = session.user.id;
           
           // Nghỉ 100ms để khóa trình duyệt ổn định (Tránh Lock broken)
-          setTimeout(async () => {
+          browerLockTimeout = setTimeout(async () => {
             try {
               await handleUserSession(session.user);
             } finally {
@@ -121,13 +116,14 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setRole(null);
         setLoading(false);
-        clearTimeout(globalTimeout);
       }
+      clearTimeout(globalTimeout);
     });
 
     return () => {
       mounted = false;
       clearTimeout(globalTimeout);
+      clearTimeout(browerLockTimeout);
       subscription.unsubscribe();
     };
   }, []);
@@ -137,10 +133,10 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       return;
     }
-
+    console.log(authUser);
+    
     // Set user ngay lập tức để Header hiện tên/email, không bắt chờ DB
     setUser(authUser);
-    console.log("Đang lấy thông tin role cho user:", authUser.id);
 
     // Safety timeout: Nếu lấy role quá 5s thì bỏ qua, cho vào web luôn
     const roleTimeout = setTimeout(() => {
@@ -161,7 +157,6 @@ export const AuthProvider = ({ children }) => {
       const isHardcodedAdmin = authUser.email === ADMIN_EMAIL;
       
       if (!dbError && userData) {
-        console.log("✅ Đã lấy xong Role:", userData.role);
         setUser({ ...authUser, ...userData });
         setRole(isHardcodedAdmin ? 'admin' : userData.role); 
       } else {

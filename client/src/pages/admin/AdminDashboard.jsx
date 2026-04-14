@@ -59,7 +59,6 @@ const Dashboard = () => {
       const productInfo = products.find(p => p.id === selectedProduct);
       
       // B. GHI BLOCKCHAIN
-      console.log("1. Đang ghi lên Blockchain...");
       
       const numericBatchCode = Number(batchCode);
       if (isNaN(numericBatchCode) || numericBatchCode <= 0) {
@@ -75,10 +74,7 @@ const Dashboard = () => {
       const tx = await contract.createBatch(numericBatchCode, productInfo.name, manufacturer);
       await tx.wait(); 
 
-      console.log("-> Lô mới có Mã:", batchCode);
-
       // C. CẬP NHẬT SUPABASE
-      console.log("2. Đang đồng bộ về Supabase...");
       
       // Bước 1: Lấy dữ liệu cũ về
       const { data: currentProduct, error: fetchError } = await supabase

@@ -317,11 +317,9 @@ const Inventory = () => {
       
       // 1. GỬI GIAO DỊCH BLOCKCHAIN
       const tx = await contract.deleteBatch(batchId);
-      console.log("Đang chờ xác nhận xóa trên Blockchain... Hash:", tx.hash);
       await tx.wait();
 
       // 2. CẬP NHẬT SUPABASE (GIẢM TỒN KHO)
-      console.log("Đang cập nhật tồn kho trong Supabase...");
       try {
         // Tìm sản phẩm trong Supabase dựa trên tên sản phẩm của lô hàng
         const { data: product, error: fetchError } = await supabase

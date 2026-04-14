@@ -69,7 +69,7 @@ const Tracking = () => {
       let docUrls = [];
       try {
         docUrls = await activeContract.getBatchDocuments(numericId);
-      } catch (e) { console.log("Lô này chưa có giấy tờ"); }
+      } catch (e) { console.error("Lô này chưa có giấy tờ"); }
 
       // 4. Lấy dữ liệu từ Supabase (Ảnh mẫu sản phẩm)
       try {
@@ -147,10 +147,10 @@ const Tracking = () => {
   }, [searchParams]); // Chỉ chạy khi URL có ID, không đợi MetaMask nữa
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-20">
+    <div className="max-w-8xl mx-auto p-4 sm:p-6 pb-20 xl:justify-items-center">
       
       {/* 1. Thanh tìm kiếm */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-10 mb-20 text-center">
+      <div className="xl:w-6/12 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-10 mb-20 text-center">
         <h1 className="text-2xl sm:text-4xl font-black text-primary mb-3 tracking-tight">Tra Cứu Nguồn Gốc</h1>
         <p className="text-gray-500 text-sm sm:text-lg mb-8 max-w-md mx-auto">Nhập mã lô thuốc (Batch ID) để kiểm tra hành trình minh bạch trên Blockchain</p>
         
@@ -183,7 +183,7 @@ const Tracking = () => {
         <div className="grid lg:grid-cols-12 gap-6 items-start">
           
           {/* Cột trái: Thông tin thuốc (Kết hợp Supabase) */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-4">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:sticky lg:top-24">
               <div className="flex flex-col items-center text-center mb-6">
                 <div className="relative mb-6">
@@ -232,7 +232,7 @@ const Tracking = () => {
           </div>
 
           {/* Cột giữa: Timeline & Giấy tờ (Tab) */}
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-4">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[500px]">
               
               {/* Tab Header */}
@@ -336,10 +336,10 @@ const Tracking = () => {
 
           {/* Cột phải: Bản đồ */}
           <div className="lg:col-span-4 lg:sticky lg:top-24">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
               <div className="flex items-center gap-2 mb-4 px-2">
                 <div className="w-8 h-8 bg-blue-50 text-primary rounded-lg flex items-center justify-center">
-                  <MapIcon size={18} />
+                  <MapIcon size={18}/>
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-gray-800 uppercase tracking-tight">Bản đồ hành trình</h3>

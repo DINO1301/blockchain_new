@@ -30,7 +30,6 @@ export const Web3Provider = ({ children }) => {
           return readContract;
         });
         
-        console.log(`Đã kết nối Blockchain (Read-only) qua: ${url} (Sepolia 11155111)`);
         return; // Thoát nếu kết nối thành công
       } catch (error) {
         console.warn(`RPC ${url} chậm hoặc lỗi:`, error.message);

@@ -53,11 +53,11 @@ const JourneyMap = ({ timeline }) => {
   const center = markers.length > 0 ? markers[0].coords : [15.8, 105.8]; // Central Vietnam
 
   return (
-    <div className="h-[500px] w-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm z-0">
+    <div className="h-[500px] w-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
       <MapContainer 
         center={center} 
         zoom={markers.length > 1 ? 5 : 12} 
-        style={{ height: '100%', width: '100%' }}
+        style={{ height: '100%', width: '100%', }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
