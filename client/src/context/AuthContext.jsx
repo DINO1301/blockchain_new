@@ -133,7 +133,6 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       return;
     }
-    console.log(authUser);
     
     // Set user ngay lập tức để Header hiện tên/email, không bắt chờ DB
     setUser(authUser);

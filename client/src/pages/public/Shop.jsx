@@ -68,7 +68,6 @@ const Shop = () => {
         throw error;
       }
       
-      console.log("✅ Shop: Đã nạp thành công", data?.length || 0, "sản phẩm.");
       setProducts(data || []);
     } catch (error) {
       console.error("❌ Lỗi ngoại lệ khi tải shop:", error);

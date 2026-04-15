@@ -47,7 +47,6 @@ const OrderHistory = () => {
     
     setProcessingId(orderId);
     try {
-      console.log("Đang cập nhật đơn hàng:", orderId);
       const { data, error, status: resStatus } = await supabase
         .from('orders')
         .update({ status: 'paid_cash' })
@@ -59,8 +58,6 @@ const OrderHistory = () => {
       if (!data || data.length === 0) {
         throw new Error("Không tìm thấy đơn hàng để cập nhật hoặc bạn không có quyền (RLS).");
       }
-
-      console.log("Cập nhật thành công:", data[0]);
       
       setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'paid_cash' } : o));
       alert("✅ Đã xác nhận thanh toán tiền mặt thành công và lưu vào hệ thống!");

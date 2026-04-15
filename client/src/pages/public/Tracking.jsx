@@ -35,7 +35,6 @@ const Tracking = () => {
 
       // --- KHẮC PHỤC LỖI TRÊN DI ĐỘNG (Provider chưa sẵn sàng) ---
       if (!activeContract) {
-        console.log("Di động: Thử khởi tạo Provider Read-only thủ công...");
         const rpcUrl = "https://ethereum-sepolia-rpc.publicnode.com";
         // Sepolia Chain ID: 11155111 - staticNetwork: true
         const readProvider = new ethers.JsonRpcProvider(rpcUrl, 11155111, { staticNetwork: true });
@@ -44,13 +43,9 @@ const Tracking = () => {
 
       // Đảm bảo id là số nguyên (vì Batch ID trong Contract là uint256)
       const numericId = BigInt(id);
-      console.log("--- BẮT ĐẦU TRA CỨU LÔ HÀNG ---");
-      console.log("ID đang tra cứu:", numericId.toString());
       
       // 1. Lấy dữ liệu từ Blockchain
-      console.log("Đang gọi contract.getBatchDetails...");
       const batch = await activeContract.getBatchDetails(numericId);
-      console.log("Kết quả từ Contract:", batch);
       
       // Xử lý dữ liệu trả về từ Contract (Hỗ trợ cả object và array)
       const b_name = batch.name || batch[0];

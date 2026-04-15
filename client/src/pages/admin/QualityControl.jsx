@@ -34,7 +34,6 @@ const QualityControl = () => {
                 manufacturer: details[1],
                 status: Number(details[3]),
             });
-            console.log(b_id);
         } catch (err) {
             console.error(err);
             alert("Không tìm thấy lô thuốc này!");
@@ -54,8 +53,6 @@ const QualityControl = () => {
         try {
             // Gọi hàm verifyQuality(id, true) trong Smart Contract
             const tx = await contract.verifyQuality(batchId, true);
-            console.log("Đang xác thực...", tx.hash);
-
             await tx.wait();
 
             alert("✅ Đã xác nhận kiểm định chất lượng thành công!");

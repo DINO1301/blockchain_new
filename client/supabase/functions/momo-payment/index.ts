@@ -38,7 +38,6 @@ serve(async (req) => {
     // 1. Tạo chữ ký (Signature) - Thứ tự tham số rất quan trọng
     const rawSignature = `accessKey=${accessKey}&amount=${amountStr}&extraData=${extraData}&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
     
-    console.log("Raw Signature:", rawSignature);
     // Dùng Web Crypto API (chuẩn Deno) để tạo HMAC SHA256
     const key = await crypto.subtle.importKey(
       "raw",
@@ -75,7 +74,6 @@ serve(async (req) => {
     };
 
     // 3. Gọi MoMo API
-    console.log("Requesting MoMo Create Order:", orderId);
     const response = await fetch('https://test-payment.momo.vn/v2/gateway/api/create', {
       method: 'POST',
       headers: {
@@ -85,8 +83,6 @@ serve(async (req) => {
     });
 
     const data = await response.json();
-    console.log("MoMo API Response:", JSON.stringify(data));
-
     return new Response(JSON.stringify(data), {
       status: response.status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

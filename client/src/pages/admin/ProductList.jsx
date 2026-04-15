@@ -299,7 +299,6 @@ const ProductList = () => {
   };
 
   const load = async () => {
-    console.log("🚀 Đang tải danh sách sản phẩm...");
     setLoading(true);
     
     // Timeout an toàn 10 giây
@@ -315,7 +314,7 @@ const ProductList = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      console.log("✅ Đã tải xong:", data?.length || 0, "sản phẩm.");
+
       setProducts(data || []);
       setFilteredProducts(data || []);
     } catch (error) {
@@ -404,7 +403,6 @@ const ProductList = () => {
     for (const path of candidateLogos) {
       try {
         const fullPath = path.startsWith('http') ? path : `${window.location.origin}${path}`;
-        console.log('Đang thử load logo từ:', fullPath);
         const base64 = await loadImageAsBase64(fullPath);
         
         imageId = workbook.addImage({ 
@@ -412,10 +410,9 @@ const ProductList = () => {
           extension: path.toLowerCase().endsWith('.png') ? 'png' : 'jpeg' 
         });
         
-        console.log('✅ Load logo thành công tại:', fullPath);
         break; 
       } catch (error) { 
-        console.log(`❌ Lỗi load ảnh ${path}:`, error.message);
+        console.log(`Lỗi load ảnh ${path}:`, error.message);
       }
     }
 

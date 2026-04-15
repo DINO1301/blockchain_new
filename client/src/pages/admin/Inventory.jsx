@@ -348,7 +348,6 @@ const Inventory = () => {
               .eq('id', product.id);
             
             if (updateError) throw updateError;
-            console.log(`Đã trừ ${qtyToRemove} sản phẩm khỏi kho.`);
           }
         }
       } catch (sbError) {
