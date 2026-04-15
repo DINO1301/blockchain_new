@@ -28,6 +28,8 @@ const JourneyMap = ({ timeline }) => {
     "Cần Thơ": [10.0371, 105.7882],
     "Đà Nẵng": [16.0544, 108.2022],
     "Hải Phòng": [20.8449, 106.6881],
+    "Long Châu": [20.8354, 106.6796],
+    "Dược phẩm Nam Hà": [20.9166, 105.8496],
   };
 
   const getCoords = (description) => {
