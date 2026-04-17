@@ -221,6 +221,8 @@ const OrderHistory = () => {
                           <><CreditCard size={14} className="text-blue-400"/> Thẻ Online</>
                         ) : order.payment_method === 'vnpay' ? (
                           <><div className="w-4 h-4 bg-red-500 text-white flex items-center justify-center rounded-[2px] text-[6px] font-black italic">VN</div> VNPay</>
+                        ) : order.payment_method === 'momo' ? (
+                          <><div className="w-4 h-4 bg-pink-500 text-white flex items-center justify-center rounded-[2px] text-[6px] font-black italic">M</div> MoMo</>
                         ) : order.payment_method === 'direct' ? (
                           <><Wallet size={14} className="text-amber-400"/> Tiền mặt</>
                         ) : (

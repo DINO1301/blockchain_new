@@ -31,7 +31,7 @@ const Home = () => {
               <h1 className="text-5xl md:text-7xl font-heading font-extrabold tracking-tight leading-tight">
                 <span className="block whitespace-nowrap">Minh bạch nguồn gốc</span>
                 <span className="block mt-4 pb-2 whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-400 glow-text leading-[1.4]">
-                  Dược phẩm & Y tế
+                  Dược phẩm
                 </span>
               </h1>
               
