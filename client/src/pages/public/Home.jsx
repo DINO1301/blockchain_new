@@ -1,0 +1,249 @@
+import { Link } from 'react-router-dom';
+import { ShieldCheck, Search, ShoppingCart, Activity, Database, Lock, BookOpen, ChevronRight } from 'lucide-react';
+
+const Home = () => {
+  return (
+    <div className="bg-brand-lightBlue">
+      
+      {/* --- HERO SECTION --- */}
+      <div className="relative text-brand-navy overflow-hidden bg-brand-lightBlue">
+        
+        {/* Họa tiết nền (Background Pattern) */}
+        <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-50 rounded-full mix-blend-multiply filter blur-3xl translate-x-1/2 translate-y-1/2"></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 py-20 md:py-32 relative z-10">
+          <div className="flex flex-col md:flex-row items-center gap-12">
+            
+            {/* Cột Trái: Text giới thiệu */}
+            <div className="md:w-1/2 space-y-6">
+              {/* Badge: Huy hiệu nổi bật */}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 border border-blue-200 text-blue-700 text-sm font-medium backdrop-blur-sm animate-fade-in-up">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                Hệ thống vận hành trên Sepolia Testnet
+              </div>
+
+              <h1 className="text-5xl md:text-7xl font-heading font-extrabold tracking-tight leading-tight">
+                <span className="block whitespace-nowrap">Minh bạch nguồn gốc</span>
+                <span className="block mt-4 pb-2 whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-400 glow-text leading-[1.4]">
+                  Dược phẩm
+                </span>
+              </h1>
+              
+              <p className="text-lg text-blue-700/80 max-w-lg leading-relaxed">
+                MediTrack ứng dụng công nghệ Blockchain để chống thuốc giả. 
+                Theo dõi hành trình viên thuốc từ nhà máy sản xuất đến tận tay người tiêu dùng.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Link to="/shop" className="px-8 py-4 bg-white text-indigo-900 rounded-xl font-bold hover:bg-blue-50 transition shadow-lg flex items-center justify-center gap-2">
+                  <ShoppingCart size={20} /> Mua Thuốc Ngay
+                </Link>
+                <Link to="/tracking" className="px-8 py-4 bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl font-bold hover:bg-indigo-200 transition flex items-center justify-center gap-2">
+                  <Search size={20} /> Tra Cứu QR
+                </Link>
+              </div>
+
+              {/* Stats nhỏ */}
+              <div className="pt-8 flex items-center gap-8 border-t border-blue-200 mt-8">
+                <div>
+                  <h4 className="text-2xl font-bold">100%</h4>
+                  <p className="text-xs text-blue-200 uppercase tracking-wider">Chính hãng</p>
+                </div>
+                <div>
+                  <h4 className="text-2xl font-bold">2.5s</h4>
+                  <p className="text-xs text-blue-200 uppercase tracking-wider">Tốc độ Block</p>
+                </div>
+                <div>
+                  <h4 className="text-2xl font-bold">Secure</h4>
+                  <p className="text-xs text-blue-200 uppercase tracking-wider">Mã hóa AES</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Cột Phải: Hình ảnh minh họa (Abstract) */}
+            <div className="md:w-1/2 relative hidden md:block">
+              <div className="relative z-10 glass-card p-8 rounded-[2rem] shadow-2xl transform rotate-3 hover:rotate-0 transition duration-500 animate-float">
+                <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white">
+                        <ShieldCheck size={28}/>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg">Xác thực thành công</h3>
+                        <p className="text-sm text-gray-300">Lô thuốc #BATCH-2025-01</p>
+                    </div>
+                </div>
+                <div className="space-y-3">
+                    <div className="h-2 bg-white/20 rounded w-3/4"></div>
+                    <div className="h-2 bg-white/20 rounded w-full"></div>
+                    <div className="h-2 bg-white/20 rounded w-5/6"></div>
+                </div>
+                <div className="mt-6 flex justify-between items-center text-sm text-blue-700 font-mono">
+                    <span>TxHash: 0x8a7...f9c</span>
+                    <span className="text-green-400">Confirmed</span>
+                </div>
+              </div>
+
+              {/* Card bay bay phía sau */}
+              <div className="absolute top-10 -right-10 w-64 bg-blue-600/30 p-6 rounded-2xl shadow-xl -z-10 opacity-80 transform -rotate-6"></div>
+
+              <div className="absolute -top-20 -right-20 w-[600px] h-[600px] opacity-20 pointer-events-none">
+                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M44.7,-76.4C58.1,-69.2,69.2,-58.1,76.4,-44.7C83.7,-31.3,87,-15.7,85.1,-0.1C83.1,15.5,75.9,31,66.6,43.5C57.3,56,45.8,65.5,32.7,71.4C19.6,77.3,4.8,79.5,-10,77.8C-24.8,76.1,-39.6,70.5,-52.1,61.1C-64.6,51.7,-74.8,38.5,-79.8,23.7C-84.8,8.9,-84.6,-7.5,-79.5,-22.3C-74.4,-37.1,-64.4,-50.3,-51.7,-57.8C-39,-65.3,-23.5,-67.1,-8.6,-73.4C6.2,-79.6,18.7,-90.4,31.3,-91.9C43.9,-93.4,56.5,-85.7,44.7,-76.4Z" fill="#00f2ff" transform="translate(100 100)"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* --- FEATURES SECTION --- */}
+      <div className="bg-white py-24 relative overflow-hidden">
+        {/* Họa tiết nền phụ cho section này */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2"></div>
+
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4 font-heading tracking-tight">Tại sao chọn MedTrack?</h2>
+            <div className="w-20 h-1.5 bg-primary mx-auto rounded-full mb-6"></div>
+            <p className="text-gray-500 max-w-2xl mx-auto text-lg leading-relaxed">
+              Giải pháp kết hợp sức mạnh của <span className="text-primary font-bold">Web2</span> (Thương mại điện tử) và <span className="text-indigo-600 font-bold">Web3</span> (Blockchain) để giải quyết bài toán niềm tin.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Feature 1 */}
+            <div className="p-10 rounded-[2rem] bg-white border border-gray-100 hover:border-primary/30 hover:shadow-[0_20px_50px_rgba(19,128,236,0.15)] transition-all duration-500 group cursor-default">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-primary group-hover:text-white group-hover:rotate-[360deg] transition-all duration-700 shadow-sm">
+                <Database size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">Dữ liệu bất biến</h3>
+              <p className="text-gray-500 leading-relaxed">
+                Một khi thông tin lô thuốc được ghi lên Blockchain, không ai (kể cả Admin) có thể sửa đổi hoặc xóa bỏ.
+              </p>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="p-10 rounded-[2rem] bg-white border border-gray-100 hover:border-indigo-600/30 hover:shadow-[0_20px_50px_rgba(79,70,229,0.15)] transition-all duration-500 group cursor-default">
+              <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-indigo-600 group-hover:text-white group-hover:rotate-[360deg] transition-all duration-700 shadow-sm">
+                <Activity size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">Real-time Tracking</h3>
+              <p className="text-gray-500 leading-relaxed">
+                Cập nhật trạng thái lô thuốc theo thời gian thực. Từ nhà máy, qua vận chuyển, đến kho đại lý.
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="p-10 rounded-[2rem] bg-white border border-gray-100 hover:border-green-600/30 hover:shadow-[0_20px_50px_rgba(22,163,74,0.15)] transition-all duration-500 group cursor-default">
+              <div className="w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-green-600 group-hover:text-white group-hover:rotate-[360deg] transition-all duration-700 shadow-sm">
+                <Lock size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">Chống hàng giả</h3>
+              <p className="text-gray-500 leading-relaxed">
+                Mỗi hộp thuốc đều có định danh duy nhất (QR Code) gắn liền với Smart Contract, ngăn chặn việc trà trộn hàng giả.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* --- GÓC SỨC KHỎE SECTION --- */}
+      <div className="bg-[#f0f7ff] py-16">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm">
+                <BookOpen size={24} />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900">Góc sức khỏe</h2>
+              <span className="text-gray-300 mx-2">|</span>
+              <Link to="#" className="text-blue-600 font-bold text-sm hover:underline flex items-center gap-1">
+                Xem tất cả <ChevronRight size={16} />
+              </Link>
+            </div>
+          </div>
+
+          {/* Categories */}
+          <div className="flex flex-wrap gap-2 mb-10">
+            {['Dinh dưỡng', 'Phòng chữa bệnh', 'Người cao tuổi', 'Khỏe đẹp', 'Mẹ và bé', 'Giới tính', 'Tin tức khuyến mại', 'Tin tức sức khỏe'].map((cat, i) => (
+              <button key={i} className="px-5 py-2 rounded-full bg-white text-gray-600 text-sm font-bold hover:bg-primary hover:text-white transition-all shadow-sm">
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid lg:grid-cols-12 gap-10">
+            {/* Main Article */}
+            <div className="lg:col-span-7 group cursor-pointer">
+              <div className="rounded-[2rem] overflow-hidden mb-6 aspect-video relative shadow-xl">
+                <img 
+                  src="https://plus.unsplash.com/premium_photo-1661281397737-9b5d75b52beb?q=80&w=1000&auto=format&fit=crop" 
+                  alt="Health Banner" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute top-4 left-4 bg-primary text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
+                  Truyền thông
+                </div>
+              </div>
+              <h3 className="text-3xl font-black text-gray-900 leading-tight mb-4 group-hover:text-primary transition-colors">
+                Lần đầu tiên tại Việt Nam: MediTrack ra mắt "Ví Khỏe Nhà Ta" – Ví sức khỏe tích thưởng cho cả nhà cùng hưởng
+              </h3>
+              <p className="text-gray-500 leading-relaxed text-lg font-medium">
+                Duy nhất tại hệ thống MediTrack, chương trình tích lũy điểm thưởng sức khỏe dành riêng cho hộ gia đình, mang lại lợi ích chăm sóc sức khỏe toàn diện và tiết kiệm cho mọi thành viên.
+              </p>
+            </div>
+
+            {/* Side Articles */}
+            <div className="lg:col-span-5 space-y-8">
+              {[
+                {
+                  title: "MediTrack ĐỒNG HÀNH TẦM SOÁT RUNG NHĨ - PHÁT HIỆN SỚM NGUY CƠ ĐỘT QUỴ...",
+                  img: "https://images.unsplash.com/photo-1631815587646-b85a1bb027e1?q=80&w=300&auto=format&fit=crop"
+                },
+                {
+                  title: "MediTrack cùng đối tác triển khai tiêm chủng miễn phí cho người dân miền Trung...",
+                  img: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=300&auto=format&fit=crop"
+                },
+                {
+                  title: "MediTrack hợp tác các hãng dược Nhật Bản ra mắt bộ câu hỏi tầm soát khô mắt chuẩn y khoa...",
+                  img: "https://images.unsplash.com/photo-1559757175-5700dde675bc?q=80&w=300&auto=format&fit=crop"
+                },
+                {
+                  title: "MediTrack phối hợp STADA Pymepharco lan tỏa kiến thức y khoa về phòng tránh thừa cân, béo phì...",
+                  img: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=300&auto=format&fit=crop"
+                },
+                {
+                  title: "MediTrack đóng góp sáng kiến về y tế số tại Diễn đàn Kinh tế Thụy Sĩ – Việt Nam 2025",
+                  img: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=300&auto=format&fit=crop"
+                }
+              ].map((news, i) => (
+                <div key={i} className="flex gap-4 group cursor-pointer">
+                  <div className="w-32 h-20 rounded-2xl overflow-hidden flex-shrink-0 shadow-md">
+                    <img src={news.img} alt="news" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-primary uppercase tracking-widest">Truyền thông</p>
+                    <h4 className="text-sm font-bold text-gray-800 leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                      {news.title}
+                    </h4>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+};
+
+export default Home;

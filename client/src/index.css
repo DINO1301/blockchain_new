@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Thêm một chút style cơ bản */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: #e1effe; /* Xanh trắng rõ rệt hơn */
+  color: #0d141b;
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.font-heading {
+  font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.glow-text {
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+  line-height: 1.25;
+  padding-bottom: 0.2rem;
+}
+
+.nav-link {
+  @apply text-sm font-semibold text-gray-600 hover:text-primary transition-all duration-300 ease-in-out whitespace-nowrap relative py-1;
+}
+
+.nav-link::after {
+  content: '';
+  @apply absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 ease-in-out;
+}
+
+.nav-link:hover::after {
+  @apply w-full;
+}
+
+.active-nav {
+  @apply text-primary font-bold;
+}
+
+.active-nav::after {
+  @apply w-full;
+}

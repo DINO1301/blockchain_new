@@ -1,0 +1,11 @@
+
+[functions.vnpay-payment]
+enabled = true
+verify_jwt = true
+import_map = "./functions/vnpay-payment/deno.json"
+entrypoint = "./functions/vnpay-payment/index.ts"
+
+[functions.momo-payment]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/momo-payment/index.ts"
