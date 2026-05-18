@@ -4,7 +4,7 @@ import { Web3Context } from './context/Web3Context';
 import { useAuth } from './context/AuthContext';
 import { useCart } from './context/CartContext';
 import { ShoppingCart, Menu, X } from 'lucide-react';
-import logo from 'assets/vmu.png';
+import logo from './assets/vmu.jpg';
 
 // Các pages
 import Home from './pages/public/Home';
