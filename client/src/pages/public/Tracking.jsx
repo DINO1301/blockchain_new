@@ -341,7 +341,7 @@ const Tracking = () => {
                   <p className="text-[10px] text-gray-400 font-medium">Trực quan hóa lộ trình vận chuyển</p>
                 </div>
               </div>
-              <JourneyMap timeline={timeline} />
+              {/* <JourneyMap timeline={timeline} /> */}
             </div>
           </div>
 

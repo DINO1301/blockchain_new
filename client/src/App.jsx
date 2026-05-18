@@ -4,6 +4,7 @@ import { Web3Context } from './context/Web3Context';
 import { useAuth } from './context/AuthContext';
 import { useCart } from './context/CartContext';
 import { ShoppingCart, Menu, X } from 'lucide-react';
+import logo from 'assets/vmu.png';
 
 // Các pages
 import Home from './pages/public/Home';
@@ -75,7 +76,8 @@ function App() {
       <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-blue-50">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2 shrink-0">
-            <span className="h-8 w-8 bg-primary rounded flex items-center justify-center text-white font-bold">M</span>
+            {/* <span className="h-8 w-8 bg-primary rounded flex items-center justify-center text-white font-bold">M</span> */}
+            <span className="h-8 w-8 bg-primary rounded flex items-center justify-center text-white font-bold"><img src={logo} alt="logo" /></span>
             <span className="font-heading font-extrabold text-xl tracking-tight text-primary">MediTrack</span>
           </Link>
           <div className="hidden lg:flex items-center gap-2 xl:gap-5 py-2">
